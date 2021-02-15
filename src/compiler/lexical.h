@@ -36,10 +36,6 @@ namespace lilang
             kBitsAnd,         // &
             kBitsOr,          // |
             kAssign,          // =
-            kAddAssign,       // +=
-            kSubAssign,       // -=
-            kMulAssign,       // *=
-            kDivAssign,       // /=
             kEqual,           // ==
             kNotEqual,        // !=
             kGreater,         // >

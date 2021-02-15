@@ -3,8 +3,7 @@
 #include "lexical.h"
 
 namespace lilang
-{ 
-    
+{
     namespace compiler
     {
         LexicalParser::LexicalParser()
@@ -73,52 +72,24 @@ namespace lilang
                     switch (*str)
                     {
                     case '/':
-                        switch (*(str + 1))
+                        if (*(str + 1) == '/')
                         {
-                        case '/':
                             NextState(ParseState::kInComment);
                             str++; //skip first character
-                            break;
-                        case '=':
-                            AddToken(2, CodeType::kDivAssign);
-                            str++;
-                            break;
-                        default:
+                        }
+                        else
+                        {
                             AddToken(1, CodeType::kDivide);
                         }
                         break;
                     case '+':
-                        switch (*(str + 1))
-                        {
-                        case '=':
-                            AddToken(2, CodeType::kAddAssign);
-                            str++;
-                            break;
-                        default:
-                            AddToken(1, CodeType::kAdd);
-                        }
+                        AddToken(1, CodeType::kAdd);
                         break;
                     case '-':
-                        switch (*(str + 1))
-                        {
-                        case '=':
-                            AddToken(2, CodeType::kSubAssign);
-                            str++;
-                            break;
-                        default:
-                            AddToken(1, CodeType::kSub);
-                        }
+                        AddToken(1, CodeType::kSub);
                         break;
                     case '*':
-                        switch (*(str + 1))
-                        {
-                        case '=':
-                            AddToken(2, CodeType::kMulAssign);
-                            str++;
-                            break;
-                        default:
-                            AddToken(1, CodeType::kMultiply);
-                        }
+                        AddToken(1, CodeType::kMultiply);
                         break;
                     case '&':
                         switch (*(str + 1))
@@ -523,14 +494,6 @@ namespace lilang
                 return "BITOR";
             case CodeType::kAssign:
                 return "ASSIGN";
-            case CodeType::kAddAssign:
-                return "ADDASSIGN";
-            case CodeType::kSubAssign:
-                return "SUBASSIGN";
-            case CodeType::kMulAssign:
-                return "MULASSIGN";
-            case CodeType::kDivAssign:
-                return "DIVASSIGN";
             case CodeType::kEqual:
                 return "EQ";
             case CodeType::kNotEqual:

@@ -60,7 +60,7 @@ int main()
 {
     LexicalParser parser;
     CodeError::List err_list;
-    auto tok_list = parser.Parse(string_literal, err_list);
+    auto tok_list = parser.Parse(operator_code, err_list);
     printTokens(tok_list);
     printErrors(err_list);
 }
