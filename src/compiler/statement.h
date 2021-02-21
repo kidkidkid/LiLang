@@ -1,0 +1,4 @@
+#ifndef LILANG_STATEMENT
+#define LILANG_STATEMENT
+
+#endif

@@ -6,15 +6,7 @@ namespace lilang
 {
     namespace compiler
     {
-        LexicalParser::LexicalParser()
-        {
-        }
-
-        LexicalParser::~LexicalParser()
-        {
-        }
-
-        CodeToken::List LexicalParser::Parse(const string_t &file, CodeError::List &err_list)
+        CodeToken::List CodeFile::Parse(const string_t &file, CodeError::List &err_list)
         {
             enum class ParseState
             {
@@ -47,6 +39,34 @@ namespace lilang
             auto AddToken = [&](int len, CodeType type) {
                 cur_token.token = string_t(token_begin, len);
                 cur_token.type = type;
+                if (type == CodeType::kIdentifier)
+                {
+                    auto tok = cur_token.token;
+                    if (tok == "if")
+                    {
+                        cur_token.type = CodeType::kIf;
+                    }
+                    else if (tok == "for")
+                    {
+                        cur_token.type = CodeType::kFor;
+                    }
+                    else if (tok == "while")
+                    {
+                        cur_token.type = CodeType::kWhile;
+                    }
+                    else if (tok == "else")
+                    {
+                        cur_token.type = CodeType::kElse;
+                    }
+                    else if (tok == "let")
+                    {
+                        cur_token.type = CodeType::kLet;
+                    }
+                    else if (tok == "fn")
+                    {
+                        cur_token.type = CodeType::kFn;
+                    }
+                }
                 tok_list.push_back(cur_token);
                 NextState(ParseState::kStart);
             };
@@ -59,7 +79,6 @@ namespace lilang
                 err_list.push_back(err);
                 NextState(ParseState::kStart);
             };
-
             while (*str)
             {
                 // std::cout << *str << static_cast<int>(state) << std::endl;
@@ -72,30 +91,63 @@ namespace lilang
                     switch (*str)
                     {
                     case '/':
-                        if (*(str + 1) == '/')
+                        switch (*(str + 1))
                         {
+                        case '/':
+
                             NextState(ParseState::kInComment);
-                            str++; //skip first character
-                        }
-                        else
-                        {
+                            str++;
+                            break;
+                        case '=':
+                            AddToken(2, CodeType::kDivAssign);
+                            str++;
+                            break;
+                        default:
                             AddToken(1, CodeType::kDivide);
                         }
                         break;
                     case '+':
-                        AddToken(1, CodeType::kAdd);
+                        switch (*(str + 1))
+                        {
+                        case '=':
+                            AddToken(2, CodeType::kAddAssign);
+                            str++;
+                            break;
+                        default:
+                            AddToken(1, CodeType::kAdd);
+                        }
                         break;
                     case '-':
-                        AddToken(1, CodeType::kSub);
+                        switch (*(str + 1))
+                        {
+                        case '=':
+                            AddToken(2, CodeType::kSubAssign);
+                            str++;
+                            break;
+                        default:
+                            AddToken(1, CodeType::kSub);
+                        }
                         break;
                     case '*':
-                        AddToken(1, CodeType::kMultiply);
+                        switch (*(str + 1))
+                        {
+                        case '=':
+                            AddToken(2, CodeType::kMulAssign);
+                            str++;
+                            break;
+                        default:
+                            AddToken(1, CodeType::kMultiply);
+                        }
                         break;
                     case '&':
                         switch (*(str + 1))
                         {
                         case '&':
                             AddToken(2, CodeType::kLogicAnd);
+                            str++;
+                            break;
+                        case '=':
+                            AddToken(2, CodeType::kBitsAndAssign);
                             str++;
                             break;
                         default:
@@ -107,6 +159,10 @@ namespace lilang
                         {
                         case '|':
                             AddToken(2, CodeType::kLogicOr);
+                            str++;
+                            break;
+                        case '=':
+                            AddToken(2, CodeType::kBitsOrAssign);
                             str++;
                             break;
                         default:
@@ -334,6 +390,7 @@ namespace lilang
                     case 'n':
                     case 't':
                     case '\\':
+                    case '"':
                     case '\n': //support multi lines
                         NextState(ParseState::kInString);
                         break;
@@ -378,8 +435,8 @@ namespace lilang
             case ParseState::kInComment:
                 AddToken(len, CodeType::kComment);
                 break;
+            default:;
             }
-            //move?
             return tok_list;
         }
 
@@ -426,6 +483,8 @@ namespace lilang
                     case '\\':
                         ss << '\\';
                         break;
+                    case '"':
+                        ss << '"';
                     default:
                         ss << ch;
                     }
@@ -492,6 +551,18 @@ namespace lilang
                 return "BITAND";
             case CodeType::kBitsOr:
                 return "BITOR";
+            case CodeType::kAddAssign:
+                return "ADDASSIGN";
+            case CodeType::kSubAssign:
+                return "SUBASSIGN";
+            case CodeType::kDivAssign:
+                return "DIVASSIGN";
+            case CodeType::kMulAssign:
+                return "MULASSIGN";
+            case CodeType::kBitsAndAssign:
+                return "BITSANDASSIGN";
+            case CodeType::kBitsOrAssign:
+                return "BITSORASSIGN";
             case CodeType::kAssign:
                 return "ASSIGN";
             case CodeType::kEqual:
@@ -518,6 +589,10 @@ namespace lilang
                 return "WHILE";
             case CodeType::kFor:
                 return "FOR";
+            case CodeType::kLet:
+                return "LET";
+            case CodeType::kFn:
+                return "FN";
             case CodeType::kLeftBracket:
                 return "LEFTBRACKET";
             case CodeType::kRightBracket:

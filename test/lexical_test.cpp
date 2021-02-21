@@ -58,9 +58,8 @@ void printErrors(CodeError::List &list)
 
 int main()
 {
-    LexicalParser parser;
     CodeError::List err_list;
-    auto tok_list = parser.Parse(operator_code, err_list);
+    auto tok_list = CodeFile::Parse(compound_code, err_list);
     printTokens(tok_list);
     printErrors(err_list);
 }

@@ -1,0 +1,4 @@
+#ifndef LILANG_DECLARATION
+#define LILANG_DECLARATION
+
+#endif

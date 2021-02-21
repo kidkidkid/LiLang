@@ -35,6 +35,12 @@ namespace lilang
             kMultiply,        // *
             kBitsAnd,         // &
             kBitsOr,          // |
+            kAddAssign,       // +=
+            kSubAssign,       // -=
+            kDivAssign,       // /=
+            kMulAssign,       // *=
+            kBitsAndAssign,   // &=
+            kBitsOrAssign,    // |=
             kAssign,          // =
             kEqual,           // ==
             kNotEqual,        // !=
@@ -46,8 +52,11 @@ namespace lilang
             kLogicOr,         // ||
             kLogicNot,        // !
             kIf,              // if
+            kElse,            // else
             kWhile,           // while
             kFor,             // for
+            kLet,             // let
+            kFn,              // fn
             kLeftBracket,     // {
             kRightBracket,    // }
             kLeftParenthese,  // (
@@ -82,13 +91,12 @@ namespace lilang
             typedef std::vector<CodeError> List;
         };
 
-        class LexicalParser
+        struct CodeFile
         {
-        public:
-            LexicalParser();
-            ~LexicalParser();
-            CodeToken::List Parse(const string_t &, CodeError::List &);
+            int _;
+            static CodeToken::List Parse(const string_t &, CodeError::List &);
         };
+
     } // namespace compiler
 } // namespace lilang
 
