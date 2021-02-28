@@ -6,6 +6,7 @@ namespace lilang
 {
     namespace compiler
     {
+
         CodeToken::List CodeFile::Parse(const string_t &file, CodeError::List &err_list)
         {
             enum class ParseState
@@ -37,11 +38,11 @@ namespace lilang
             };
 
             auto AddToken = [&](int len, CodeType type) {
-                cur_token.token = string_t(token_begin, len);
+                cur_token.value = string_t(token_begin, len);
                 cur_token.type = type;
                 if (type == CodeType::kIdentifier)
                 {
-                    auto tok = cur_token.token;
+                    auto tok = cur_token.value;
                     if (tok == "if")
                     {
                         cur_token.type = CodeType::kIf;
@@ -218,9 +219,15 @@ namespace lilang
                         token_begin++;
                         break;
                     case '{':
-                        AddToken(1, CodeType::kLeftBracket);
+                        AddToken(1, CodeType::kLeftBrace);
                         break;
                     case '}':
+                        AddToken(1, CodeType::kRightBrace);
+                        break;
+                    case '[':
+                        AddToken(1, CodeType::kLeftBracket);
+                        break;
+                    case ']':
                         AddToken(1, CodeType::kRightBracket);
                         break;
                     case ',':
@@ -437,6 +444,12 @@ namespace lilang
                 break;
             default:;
             }
+            CodeToken end_token;
+            end_token.type = CodeType::kEOF;
+            end_token.row_number = row_number;
+            end_token.column_number = str - row_begin;
+            end_token.value = "$";
+            tok_list.push_back(end_token);
             return tok_list;
         }
 
@@ -529,6 +542,8 @@ namespace lilang
         {
             switch (t)
             {
+            case CodeType::kEOF:
+                return "EOF";
             case CodeType::kIdentifier:
                 return "IDENTIFIER";
             case CodeType::kComment:
@@ -583,16 +598,10 @@ namespace lilang
                 return "OR";
             case CodeType::kLogicNot:
                 return "NOT";
-            case CodeType::kIf:
-                return "IF";
-            case CodeType::kWhile:
-                return "WHILE";
-            case CodeType::kFor:
-                return "FOR";
-            case CodeType::kLet:
-                return "LET";
-            case CodeType::kFn:
-                return "FN";
+            case CodeType::kLeftBrace:
+                return "LEFTBRACE";
+            case CodeType::kRightBrace:
+                return "RIGHTBRACE";
             case CodeType::kLeftBracket:
                 return "LEFTBRACKET";
             case CodeType::kRightBracket:
@@ -605,10 +614,21 @@ namespace lilang
                 return "COMMA";
             case CodeType::kSemiColon:
                 return "SEMIECOLON";
+            case CodeType::kIf:
+                return "IF";
+            case CodeType::kWhile:
+                return "WHILE";
+            case CodeType::kFor:
+                return "FOR";
+            case CodeType::kLet:
+                return "LET";
+            case CodeType::kFn:
+                return "FN";
+            case CodeType::kReturn:
+                return "RETUEN";
             default:
                 return "UNKNOWN";
             }
         }
-
-    } // namespace compiler
-} // namespace lilang
+    }
+}

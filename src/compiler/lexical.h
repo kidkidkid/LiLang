@@ -1,5 +1,5 @@
-#ifndef LILANG_LEXICAL
-#define LILANG_LEXICAL
+#ifndef LILANG_COMPILER_LEXICAL
+#define LILANG_COMPILER_LEXICAL
 
 #include <vector>
 
@@ -13,7 +13,8 @@ x = "abcd    ===> a,b,c,d,\n      not support
 x = "abcd\   ===> a,b,c,d,\\,\n   support
 "
 string escaping:
-\n \\ \t
+\n \\ \t \"
+
 float:
 1.   support
 .1   not support
@@ -24,6 +25,7 @@ namespace lilang
     {
         enum class CodeType
         {
+            kEOF,
             kIdentifier,
             kComment,         // //*
             kNumber,          // includes decimal, hexadecimal, octal, binary
@@ -51,24 +53,28 @@ namespace lilang
             kLogicAnd,        // &&
             kLogicOr,         // ||
             kLogicNot,        // !
+            kLeftBrace,       // {
+            kRightBrace,      // }
+            kLeftParenthese,  // (
+            kRightParenthese, // )
+            kLeftBracket,     // [
+            kRightBracket,    // ]
+            kComma,           // ,
+            kSemiColon,       // ;
+                              //keyword
             kIf,              // if
             kElse,            // else
             kWhile,           // while
             kFor,             // for
             kLet,             // let
             kFn,              // fn
-            kLeftBracket,     // {
-            kRightBracket,    // }
-            kLeftParenthese,  // (
-            kRightParenthese, // )
-            kComma,           // ,
-            kSemiColon        // ;
+            kReturn,          // return
         };
 
         struct CodeToken
         {
             CodeType type;
-            string_t token;
+            string_t value;
             int row_number;
             int column_number;
 
@@ -97,7 +103,7 @@ namespace lilang
             static CodeToken::List Parse(const string_t &, CodeError::List &);
         };
 
-    } // namespace compiler
-} // namespace lilang
+    }
+}
 
 #endif

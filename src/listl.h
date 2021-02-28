@@ -1,5 +1,5 @@
-#ifndef LILANG_STL
-#define LILANG_STL
+#ifndef LILANG_COMPILER_STANDARD
+#define LILANG_COMPILER_STANDARD
 
 #include <string>
 

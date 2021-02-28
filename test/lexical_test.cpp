@@ -42,7 +42,7 @@ void printTokens(CodeToken::List &list)
     for (auto token : list)
     {
         std::cout << "(" << token.row_number << ", " << token.column_number << ") "
-                  << CodeToken::Type2Str(token.type) << " " << token.token << std::endl;
+                  << CodeToken::Type2Str(token.type) << " " << token.value << std::endl;
     }
 }
 
