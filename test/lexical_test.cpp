@@ -32,6 +32,7 @@ int tmp = 0;
 for (int y = 1; y < 4; y += 1) 
 {
     tmp += x * y; //注释
+    tmp ^= 10;
 } 
 return tmp;
 )";

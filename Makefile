@@ -7,7 +7,7 @@ lexical:
 	rm ./lexical.out
 
 syntax:
-	g++ -std=c++11 \
+	g++ -std=c++11 -O0\
 		./test/syntax_test.cpp ./src/compiler/syntax.cpp ./src/compiler/lexical.cpp \
 		-I./src/compiler \
 		-o syntax.out

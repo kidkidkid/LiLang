@@ -17,17 +17,22 @@ for (int y = 1; y < 4; y += 1)
 return tmp;
 )";
 
-string_t func_type = "fn (fn(int xx , int x)(), int x)(int, fn(int x)int)";
+string_t func_type = "fn (fn(**int xx , int x)(), int x)(int, fn(int x)[]int)";
+string_t unary_expr = "+-&^ffff(10, 10, 10)";
+string_t binary_expr = "10 > (20 * 10) || 10 /10 < 100 && -100 > 0";
 
 int main()
 {
     CodeError::List err_list;
-    auto tok_list = CodeFile::Parse(func_type, err_list);
+    auto tok_list = CodeFile::Parse(binary_expr, err_list);
     Parser parser(tok_list);
     for (auto iter : tok_list)
     {
         std::cout << iter.value << std::endl;
     }
-    parser.parseType();
+    auto e = parser.parseExpression();
     parser.printErrors();
+    std::cout << e->Start();
+    // auto c = std::dynamic_pointer_cast<ast::BinaryExpr>(e);
+    // std::cout << CodeToken::Type2Str(c->op) << std::endl;
 }

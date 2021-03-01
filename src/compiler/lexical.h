@@ -37,12 +37,15 @@ namespace lilang
             kMultiply,        // *
             kBitsAnd,         // &
             kBitsOr,          // |
+            kBitsXor,         // ^
+            kMod,             // %
             kAddAssign,       // +=
             kSubAssign,       // -=
             kDivAssign,       // /=
             kMulAssign,       // *=
             kBitsAndAssign,   // &=
             kBitsOrAssign,    // |=
+            kBitsXorAssign,   // ^=
             kAssign,          // =
             kEqual,           // ==
             kNotEqual,        // !=
@@ -86,6 +89,7 @@ namespace lilang
             static bool IsBinaryDigit(char_t);
             static bool IsDecimalDigit(char_t);
             static string_t Type2Str(CodeType);
+            static int Precedence(CodeType);
         };
 
         struct CodeError

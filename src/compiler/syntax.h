@@ -31,8 +31,9 @@ namespace lilang
             {
             public:
                 static int trace_ident;
+                Parser *p;
                 Trace() = default;
-                Trace(const string_t &msg);
+                Trace(const string_t &msg, Parser *);
                 ~Trace();
             };
 
@@ -58,18 +59,23 @@ namespace lilang
 
             // expression related
             ast::ExprType parseExpression();
+            ast::ExprType parseBinaryExpression(int);
             ast::ExprType parseUnaryExpression();
             ast::ExprType parsePrimaryExpression();
+            ast::ExprType parseIndex(ast::ExprType);
+            ast::ExprType parseCallOrConversion(ast::ExprType);
             ast::ExprType parseOperand();
             ast::ExprType parseIdent();
             ast::ExprType parseBasicLit();
             ast::ExprType parseType();
-            ast::ExprType tryIdentOrType();
+            ast::ExprType parseTypeName();
+            ast::ExprType parsePointerType();
+            ast::ExprType parseArrayType();
             ast::ExprType parseFuncType();
             ast::FieldType parseField();
             ast::FieldListType parseFnParamters();
             ast::FieldListType parseFnResults();
-            ast::ExprType parseFuncLit();
+            ast::ExprType parseFuncLitOrType();
 
             // statement related
             ast::StmtType parseIfStmt();

@@ -35,6 +35,36 @@ namespace lilang
             }
         };
 
+        // Expr op Expr
+        class BinaryExpr : public Expr
+        {
+        public:
+            ExprType left;
+            CodeType op;
+            ExprType right;
+            BinaryExpr() = default;
+            BinaryExpr(ExprType l, CodeType t, ExprType r) : left(l), op(t), right(r) {}
+            inline TokenPos Start()
+            {
+                return left->Start();
+            }
+        };
+
+        // op Expr
+        class UnaryExpr : public Expr
+        {
+        public:
+            TokenPos pos;
+            CodeType op;
+            ExprType expr;
+            UnaryExpr() = default;
+            UnaryExpr(TokenPos p, CodeType t, ExprType e) : pos(p), op(t), expr(e) {}
+            inline TokenPos Start()
+            {
+                return pos;
+            }
+        };
+
         // literal: string/number/float
         class BasicLiteral : public Expr
         {
@@ -93,23 +123,6 @@ namespace lilang
             }
         };
 
-        // Expr(Expr)
-        class CallExpr : public Expr
-        {
-        public:
-            ExprType expr;
-            TokenPos left_paren;
-            ExprListType args;
-            TokenPos right_paren;
-            CallExpr() = default;
-            CallExpr(ExprType f, TokenPos left, ExprListType a, TokenPos right)
-                : expr(f), left_paren(left), args(a), right_paren(right) {}
-            inline TokenPos Start()
-            {
-                return expr->Start();
-            }
-        };
-
         // *Expr
         class StarExpr : public Expr
         {
@@ -130,9 +143,8 @@ namespace lilang
         public:
             TokenPos l;
             ExprType expr;
-            TokenPos r;
             ArrayType() = default;
-            ArrayType(TokenPos l, ExprType e, TokenPos r) : l(l), expr(e), r(r) {}
+            ArrayType(TokenPos l, ExprType e) : l(l), expr(e) {}
             inline TokenPos Start()
             {
                 return l;
@@ -153,6 +165,35 @@ namespace lilang
                 return l;
             }
         };
+
+        // Expr(Expr)
+        class CallExpr : public Expr
+        {
+        public:
+            ExprType expr;
+            ExprListType args;
+            CallExpr() = default;
+            CallExpr(ExprType f, ExprListType a) : expr(f), args(a) {}
+            inline TokenPos Start()
+            {
+                return expr->Start();
+            }
+        };
+
+        // operand[expr]
+        class IndexExpr : public Expr
+        {
+        public:
+            ExprType operand;
+            ExprType index;
+            IndexExpr() = default;
+            IndexExpr(ExprType o, ExprType i) : operand(o), index(i) {}
+            inline TokenPos Start()
+            {
+                return operand->Start();
+            }
+        };
+
     }
 }
 

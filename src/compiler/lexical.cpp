@@ -155,6 +155,17 @@ namespace lilang
                             AddToken(1, CodeType::kBitsAnd);
                         }
                         break;
+                    case '^':
+                        switch (*(str + 1))
+                        {
+                        case '=':
+                            AddToken(2, CodeType::kBitsXorAssign);
+                            str++;
+                            break;
+                        default:
+                            AddToken(1, CodeType::kBitsXor);
+                        }
+                        break;
                     case '|':
                         switch (*(str + 1))
                         {
@@ -566,6 +577,10 @@ namespace lilang
                 return "BITAND";
             case CodeType::kBitsOr:
                 return "BITOR";
+            case CodeType::kBitsXor:
+                return "BITXOR";
+            case CodeType::kMod:
+                return "MOD";
             case CodeType::kAddAssign:
                 return "ADDASSIGN";
             case CodeType::kSubAssign:
@@ -578,6 +593,8 @@ namespace lilang
                 return "BITSANDASSIGN";
             case CodeType::kBitsOrAssign:
                 return "BITSORASSIGN";
+            case CodeType::kBitsXorAssign:
+                return "BITSXORASSIGN";
             case CodeType::kAssign:
                 return "ASSIGN";
             case CodeType::kEqual:
@@ -630,5 +647,36 @@ namespace lilang
                 return "UNKNOWN";
             }
         }
+
+        int CodeToken::Precedence(CodeType t)
+        {
+            switch (t)
+            {
+            case CodeType::kLogicOr:
+                return 5;
+            case CodeType::kLogicAnd:
+                return 4;
+            case CodeType::kEqual:
+            case CodeType::kNotEqual:
+            case CodeType::kLess:
+            case CodeType::kGreater:
+            case CodeType::kNotGreater:
+            case CodeType::kNotLess:
+                return 3;
+            case CodeType::kAdd:
+            case CodeType::kSub:
+            case CodeType::kBitsOr:
+            case CodeType::kBitsXor:
+                return 2;
+            case CodeType::kBitsAnd:
+            case CodeType::kMultiply:
+            case CodeType::kDivide:
+            case CodeType::kMod:
+                return 1;
+            default:
+                return 0;
+            }
+        }
+
     }
 }
