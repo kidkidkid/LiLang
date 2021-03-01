@@ -19,7 +19,7 @@ return tmp;
 
 string_t func_type = "fn (fn(**int xx , int x)(), int x)(int, fn(int x)[]int)";
 string_t unary_expr = "+-&^ffff(10, 10, 10)";
-string_t binary_expr = "10 > (20 * 10) || 10 /10 < 100 && -100 > 0";
+string_t binary_expr = "10 > (20 * 10) || 10 /10 < 100 || true && -100 > 0";
 
 int main()
 {
@@ -32,7 +32,6 @@ int main()
     }
     auto e = parser.parseExpression();
     parser.printErrors();
-    std::cout << e->Start();
-    // auto c = std::dynamic_pointer_cast<ast::BinaryExpr>(e);
-    // std::cout << CodeToken::Type2Str(c->op) << std::endl;
+    auto c = std::dynamic_pointer_cast<ast::BinaryExpr>(e);
+    std::cout << CodeToken::Type2Str(c->op) << std::endl << c->right->Start() << std::endl;
 }

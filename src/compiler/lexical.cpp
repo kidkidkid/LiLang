@@ -653,9 +653,9 @@ namespace lilang
             switch (t)
             {
             case CodeType::kLogicOr:
-                return 5;
+                return 1;
             case CodeType::kLogicAnd:
-                return 4;
+                return 2;
             case CodeType::kEqual:
             case CodeType::kNotEqual:
             case CodeType::kLess:
@@ -667,12 +667,12 @@ namespace lilang
             case CodeType::kSub:
             case CodeType::kBitsOr:
             case CodeType::kBitsXor:
-                return 2;
+                return 4;
             case CodeType::kBitsAnd:
             case CodeType::kMultiply:
             case CodeType::kDivide:
             case CodeType::kMod:
-                return 1;
+                return 5;
             default:
                 return 0;
             }
