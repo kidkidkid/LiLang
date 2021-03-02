@@ -21,6 +21,9 @@ namespace lilang
         using FieldListType = std::vector<FieldType>;
         using StmtType = std::shared_ptr<Stmt>;
         using StmtListType = std::vector<StmtType>;
+        using DeclType = std::shared_ptr<Decl>;
+        using DeclListType = std::vector<DeclType>;
+
         class Node
         {
         public:

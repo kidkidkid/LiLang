@@ -5,12 +5,25 @@
 #include <vector>
 #include "./ast.h"
 #include "./expression.h"
+#include "./declaration.h"
 
 namespace lilang
 {
     namespace ast
     {
         class Stmt;
+
+        class BadStmt : public Stmt
+        {
+        public:
+            TokenPos start;
+            BadStmt() = default;
+            BadStmt(TokenPos s) : start(s) {}
+            inline TokenPos Start()
+            {
+                return start;
+            }
+        };
 
         class IfStmt : public Stmt
         {
@@ -69,6 +82,18 @@ namespace lilang
             inline TokenPos Start()
             {
                 return left_bracket;
+            }
+        };
+
+        class DeclStmt : public Stmt
+        {
+        public:
+            DeclType decl;
+            DeclStmt() = default;
+            DeclStmt(DeclType d) : decl(d) {}
+            inline TokenPos Start()
+            {
+                return decl->Start();
             }
         };
     }

@@ -59,6 +59,7 @@ namespace lilang
 
             // expression related
             ast::ExprType parseExpression();
+            ast::ExprListType parseExprList();
             ast::ExprType parseBinaryExpression(int);
             ast::ExprType parseUnaryExpression();
             ast::ExprType parsePrimaryExpression();
@@ -78,10 +79,15 @@ namespace lilang
             ast::ExprType parseFuncLitOrType();
 
             // statement related
+            ast::StmtType parseStmt();
+            ast::StmtListType parseStmtList();
+            ast::StmtType parseSimpleStmt();
             ast::StmtType parseIfStmt();
             ast::StmtType parseWhileStmt();
             ast::StmtType parseForStmt();
             ast::StmtType parseBlock();
+            ast::StmtType parseDeclStmt();
+            ast::StmtType parseReturnStmt();
 
             //declaration related
         };

@@ -36,6 +36,12 @@ Parser::Parser(CodeToken::List list)
 // helper
 void Parser::nextToken()
 {
+#ifdef lilang_trace
+    auto tok = tokens[cur_pos];
+    std::cout << std::setw(3) << tok.row_number << ":" << std::setw(3) << tok.column_number << ":";
+    repeatStringLit(Trace::trace_ident * 2, ".");
+    std::cout << "\"" << cur_tok.value << "\"" << std::endl;
+#endif
     if (cur_iter != tokens.end() && cur_tok.type != CodeType::kEOF)
     {
         cur_iter++;
@@ -115,6 +121,25 @@ ast::ExprType Parser::parseExpression()
     trace("Expression");
 #endif
     return parseBinaryExpression(1);
+}
+
+ast::ExprListType Parser::parseExprList()
+{
+#ifdef lilang_trace
+    trace("ExpressionList");
+#endif
+    ast::ExprListType list;
+    while (true)
+    {
+        auto e = parseExpression();
+        list.push_back(e);
+        if (cur_tok.type != CodeType::kComma)
+        {
+            break;
+        }
+        expect(CodeType::kComma);
+    }
+    return list;
 }
 
 // The power of Recursive!
@@ -487,8 +512,94 @@ ast::ExprType Parser::parseBasicLit()
 //************************************************************
 // statement related
 //************************************************************
+
+ast::StmtType Parser::parseStmt()
+{
+#ifdef lilang_trace
+    trace("Statement");
+#endif
+    switch (cur_tok.type)
+    {
+    case CodeType::kIf:
+        return parseIfStmt();
+    case CodeType::kWhile:
+        return parseWhileStmt();
+    case CodeType::kFor:
+        return parseForStmt();
+    case CodeType::kLeftBrace:
+        return parseBlock();
+    case CodeType::kReturn:
+        return parseReturnStmt();
+    case CodeType::kLet:
+        return parseDeclStmt();
+    default:
+        expectError("statement");
+        return nullptr;
+    }
+}
+
+ast::StmtListType Parser::parseStmtList()
+{
+#ifdef lilang_trace
+    trace("StatementList");
+#endif
+    ast::StmtListType list;
+    return list;
+}
+
+ast::StmtType Parser::parseSimpleStmt()
+{
+#ifdef lilang_trace
+    trace("SimpleStatement");
+#endif
+    return nullptr;
+}
+
+ast::StmtType Parser::parseIfStmt()
+{
+#ifdef lilang_trace
+    trace("IfStatement");
+#endif
+    return nullptr;
+}
+
+ast::StmtType Parser::parseWhileStmt()
+{
+#ifdef lilang_trace
+    trace("WhileStatement");
+#endif
+    return nullptr;
+}
+
+ast::StmtType Parser::parseForStmt()
+{
+#ifdef lilang_trace
+    trace("IfStatement");
+#endif
+    return nullptr;
+}
+
+ast::StmtType Parser::parseReturnStmt()
+{
+#ifdef lilang_trace
+    trace("ReturnStatement");
+#endif
+    return nullptr;
+}
+
+ast::StmtType Parser::parseDeclStmt()
+{
+#ifdef lilang_trace
+    trace("DeclStatement");
+#endif
+    return nullptr;
+}
+
 ast::StmtType Parser::parseBlock()
 {
+#ifdef lilang_trace
+    trace("Block");
+#endif
     auto p = cur_pos;
     expect(CodeType::kLeftBrace);
     expect(CodeType::kRightBrace);
