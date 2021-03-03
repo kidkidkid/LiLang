@@ -16,12 +16,13 @@ namespace lilang
         class BadStmt : public Stmt
         {
         public:
-            TokenPos start;
+            TokenPos left;
+            TokenPos right;
             BadStmt() = default;
-            BadStmt(TokenPos s) : start(s) {}
+            BadStmt(TokenPos l, TokenPos r) : left(l), right(r) {}
             inline TokenPos Start()
             {
-                return start;
+                return left;
             }
         };
 
@@ -96,6 +97,46 @@ namespace lilang
                 return decl->Start();
             }
         };
+
+        class EmptyStmt : public Stmt
+        {
+        public:
+            TokenPos semi;
+            EmptyStmt() = default;
+            EmptyStmt(TokenPos s) : semi(s) {}
+            inline TokenPos Start()
+            {
+                return semi;
+            }
+        };
+
+        class ExprStmt : public Stmt
+        {
+        public:
+            ExprType expr;
+            ExprStmt() = default;
+            ExprStmt(ExprType e) : expr(e) {}
+            inline TokenPos Start()
+            {
+                return expr->Start();
+            }
+        };
+
+        class AssignStmt : public Stmt
+        {
+        public:
+            ExprListType lhs;
+            TokenPos assign_pos;
+            ExprListType rhs;
+            AssignStmt() = default;
+            AssignStmt(ExprListType l, TokenPos p, ExprListType r)
+                : lhs(l), assign_pos(p), rhs(r){}
+            inline TokenPos Start()
+            {
+                return lhs[0]->Start();
+            }
+        };
+
     }
 }
 

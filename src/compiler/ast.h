@@ -13,6 +13,7 @@ namespace lilang
         class Stmt;
         class Decl;
         class Field;
+        class Ident;
         // typedef
         using TokenPos = int;
         using ExprType = std::shared_ptr<Expr>;
@@ -56,7 +57,7 @@ namespace lilang
             ExprType type;
             Field() = default;
             Field(ExprType t) : type(t) {}
-            Field(ExprType t, ExprType n) : name(n), type(t) {}
+            Field(ExprType n, ExprType t) : name(n), type(t) {}
             inline TokenPos Start()
             {
                 return type->Start();

@@ -20,18 +20,21 @@ return tmp;
 string_t func_type = "fn (fn(**int xx , int x)(), int x)(int, fn(int x)[]int)";
 string_t unary_expr = "+-&^ffff(10, 10, 10)";
 string_t binary_expr = "10 > (20 * 10) || 10 /10 < 100 || true && -100 > 0";
+string_t conversion_expr = "int(x)";
+string_t expr_list = "10 < 100 && 10 > 1, x <= 100, 10 >= z";
 
 int main()
 {
     CodeError::List err_list;
-    auto tok_list = CodeFile::Parse(binary_expr, err_list);
+    auto tok_list = CodeFile::Parse(expr_list, err_list);
     Parser parser(tok_list);
     for (auto iter : tok_list)
     {
         std::cout << iter.value << std::endl;
     }
-    auto e = parser.parseExpression();
+    auto e = parser.parseExprList();
     parser.printErrors();
-    auto c = std::dynamic_pointer_cast<ast::BinaryExpr>(e);
-    std::cout << CodeToken::Type2Str(c->op) << std::endl << c->right->Start() << std::endl;
+    // auto c = std::dynamic_pointer_cast<ast::BinaryExpr>(e);
+    // std::cout << CodeToken::Type2Str(c->op) << std::endl
+    //           << c->right->Start() << std::endl;
 }

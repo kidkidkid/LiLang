@@ -111,9 +111,9 @@ void Parser::printErrors()
     }
 }
 
-//************************************************************
-//expression related/
-//************************************************************
+//********************************************************************
+//expression related
+//********************************************************************
 
 ast::ExprType Parser::parseExpression()
 {
@@ -123,6 +123,7 @@ ast::ExprType Parser::parseExpression()
     return parseBinaryExpression(1);
 }
 
+// expression{, expression}
 ast::ExprListType Parser::parseExprList()
 {
 #ifdef lilang_trace
@@ -131,8 +132,7 @@ ast::ExprListType Parser::parseExprList()
     ast::ExprListType list;
     while (true)
     {
-        auto e = parseExpression();
-        list.push_back(e);
+        list.push_back(parseExpression()); // rvalue
         if (cur_tok.type != CodeType::kComma)
         {
             break;
@@ -230,8 +230,7 @@ ast::ExprType Parser::parseCallOrConversion(ast::ExprType e)
     expect(CodeType::kLeftParenthese);
     while (true)
     {
-        auto e = parseExpression();
-        arg_list.push_back(e);
+        arg_list.push_back(parseExpression());
         if (cur_tok.type == CodeType::kComma)
         {
             nextToken();
@@ -268,7 +267,7 @@ ast::ExprType Parser::parseOperand()
     case CodeType::kIdentifier:
         e = parseIdent();
         return e;
-    case CodeType::kLeftParenthese:
+    case CodeType::kLeftParenthese: // (expression) or (type)
     {
         auto l = cur_pos;
         nextToken();
@@ -286,17 +285,34 @@ ast::ExprType Parser::parseOperand()
     default:
         break;
     }
+
     // try parse type, operand may be conversion: operand -> type(expression)
-    auto t = parseType();
+    // (type)identifier is not allowed
+    auto t = tryParseType();
     if (t == nullptr)
     {
+        auto l = cur_pos;
         expectError("operand");
+        exhaust(expression_follow); // necessary?
+        return std::make_shared<ast::BadExpr>(l, cur_pos);
     }
-    return nullptr;
+    return t;
+}
+
+// parse type
+ast::ExprType Parser::parseType()
+{
+    auto t = tryParseType();
+    if (t == nullptr)
+    {
+        expectError("type");
+        return std::make_shared<ast::BadExpr>(cur_pos, cur_pos);
+    }
+    return t;
 }
 
 // return type or null if no type found
-ast::ExprType Parser::parseType()
+ast::ExprType Parser::tryParseType()
 {
     switch (cur_tok.type)
     {
@@ -388,8 +404,7 @@ ast::FieldListType Parser::parseFnParamters()
     {
         while (true)
         {
-            auto field = parseField();
-            params.push_back(field);
+            params.push_back(parseField());
             if (cur_tok.type == CodeType::kComma)
             {
                 nextToken();
@@ -422,8 +437,7 @@ ast::FieldListType Parser::parseFnResults()
         {
             while (true)
             {
-                auto t = parseType();
-                returns.push_back(std::make_shared<ast::Field>(t));
+                returns.push_back(std::make_shared<ast::Field>(parseType()));
                 if (cur_tok.type == CodeType::kComma)
                 {
                     nextToken();
@@ -442,8 +456,7 @@ ast::FieldListType Parser::parseFnResults()
         auto t = parseType();
         if (t != nullptr)
         {
-            auto f = std::make_shared<ast::Field>(t);
-            returns.push_back(f);
+            returns.push_back(std::make_shared<ast::Field>(t));
         }
     }
     return returns;
@@ -453,12 +466,6 @@ ast::FieldListType Parser::parseFnResults()
 ast::FieldType Parser::parseField()
 {
     auto t = parseType();
-    if (t == nullptr)
-    {
-        expectError("type");
-        t = std::make_shared<ast::BadExpr>(cur_pos, cur_pos);
-        nextToken();
-    }
     if (cur_tok.type == CodeType::kComma ||
         cur_tok.type == CodeType::kSemiColon ||
         cur_tok.type == CodeType::kRightParenthese ||
@@ -509,10 +516,11 @@ ast::ExprType Parser::parseBasicLit()
     return lit;
 }
 
-//************************************************************
+//********************************************************************
 // statement related
-//************************************************************
+//********************************************************************
 
+// semicolon is expect in each statement, some statements dont end with semicolon
 ast::StmtType Parser::parseStmt()
 {
 #ifdef lilang_trace
@@ -532,10 +540,32 @@ ast::StmtType Parser::parseStmt()
         return parseReturnStmt();
     case CodeType::kLet:
         return parseDeclStmt();
-    default:
-        expectError("statement");
-        return nullptr;
+    case CodeType::kSemiColon:
+    {
+        auto p = cur_pos;
+        nextToken();
+        return std::make_shared<ast::EmptyStmt>(p);
     }
+    // first of expression
+    case CodeType::kIdentifier:
+    case CodeType::kAdd:
+    case CodeType::kSub:
+    case CodeType::kBitsAnd:
+    case CodeType::kBitsXor:
+    case CodeType::kBitsOr:
+    case CodeType::kLogicNot:
+    case CodeType::kStringLiteral:
+    case CodeType::kNumber:
+    case CodeType::kFloat:
+    case CodeType::kLeftParenthese:
+        return parseSimpleStmt();
+    default:
+        break;
+    };
+    auto l = cur_pos;
+    expectError("statement");
+    exhaust(statement_follow); // if can not parse stmt, exhaust until ; OR }
+    return std::make_shared<ast::BadStmt>(l, cur_pos);
 }
 
 ast::StmtListType Parser::parseStmtList()
@@ -544,15 +574,52 @@ ast::StmtListType Parser::parseStmtList()
     trace("StatementList");
 #endif
     ast::StmtListType list;
+    while (true)
+    {
+        if (cur_tok.type == CodeType::kEOF ||
+            cur_tok.type == CodeType::kRightBrace)
+        {
+            break;
+        }
+        list.push_back(parseStmt()); // rvalue
+    }
     return list;
 }
 
+// assign
 ast::StmtType Parser::parseSimpleStmt()
 {
 #ifdef lilang_trace
     trace("SimpleStatement");
 #endif
-    return nullptr;
+    auto lhs = parseExprList();
+    switch (cur_tok.type)
+    {
+    case CodeType::kAssign:
+    case CodeType::kAddAssign:
+    case CodeType::kSubAssign:
+    case CodeType::kMulAssign:
+    case CodeType::kDivAssign:
+    case CodeType::kBitsOrAssign:
+    case CodeType::kBitsAndAssign:
+    case CodeType::kBitsXorAssign:
+    {
+        auto p = cur_pos;
+        nextToken();
+        auto rhs = parseExprList();
+        return std::make_shared<ast::AssignStmt>(lhs, p, rhs);
+    }
+    default:
+        break;
+    }
+
+    if (lhs.size() > 1)
+    {
+        expectError("one expression");
+        return std::make_shared<ast::BadStmt>(lhs[0]->Start(), cur_pos);
+    }
+    // todo, maybe add ++/-- or other features
+    return std::make_shared<ast::ExprStmt>(lhs[0]); // expression statement
 }
 
 ast::StmtType Parser::parseIfStmt()
@@ -602,6 +669,7 @@ ast::StmtType Parser::parseBlock()
 #endif
     auto p = cur_pos;
     expect(CodeType::kLeftBrace);
+    auto list = parseStmtList();
     expect(CodeType::kRightBrace);
-    return std::make_shared<ast::Block>(p, ast::StmtListType{});
+    return std::make_shared<ast::Block>(p, list);
 }
