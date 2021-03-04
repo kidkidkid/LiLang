@@ -67,6 +67,7 @@ namespace lilang
             ast::ExprType parseCallOrConversion(ast::ExprType);
             ast::ExprType parseOperand();
             ast::ExprType parseIdent();
+            ast::ExprListType parseIdentList();
             ast::ExprType parseBasicLit();
             ast::ExprType parseType();
             ast::ExprType tryParseType();

@@ -3,6 +3,7 @@
 #include <iomanip>
 #include "./syntax.h"
 #include "./expression.h"
+#include "./declaration.h"
 
 #define repeatStringLit(N, S)   \
     for (int i = 0; i < N; i++) \
@@ -473,26 +474,24 @@ ast::FieldType Parser::parseField()
     {
         return std::make_shared<ast::Field>(t);
     }
-    else if (cur_tok.type == CodeType::kIdentifier)
-    {
-        auto i = parseIdent();
-        return std::make_shared<ast::Field>(t, i);
-    }
-    else
-    {
-        expectError("identifier");
-        auto i = std::make_shared<ast::BadExpr>(cur_pos, cur_pos);
-        return std::make_shared<ast::Field>(t, i);
-    }
+    auto i = parseIdent();
+    return std::make_shared<ast::Field>(t, i);
 }
 
 // identifier
 ast::ExprType Parser::parseIdent()
 {
+    if (cur_tok.type != CodeType::kIdentifier)
+    {
+        auto p = cur_pos;
+        expectError("identifier");
+        nextToken();
+        return std::make_shared<ast::BadExpr>(p, p);
+    }
     auto ident = std::make_shared<ast::Ident>();
     ident->name = cur_tok.value;
     ident->pos = cur_pos;
-    // judge whether identifier is type
+    // predicate identifier is type
     if (cur_tok.value == "int" || cur_tok.value == "float" || cur_tok.value == "string")
     {
         ident->kind = ast::IdentType::kType;
@@ -503,6 +502,25 @@ ast::ExprType Parser::parseIdent()
     }
     nextToken();
     return ident;
+}
+
+// identifier {, identifier}
+ast::ExprListType Parser::parseIdentList()
+{
+#ifdef lilang_trace
+    trace("IdentList");
+#endif
+    ast::ExprListType list;
+    while (true)
+    {
+        list.push_back(parseIdent());
+        if (cur_tok.type != CodeType::kComma)
+        {
+            break;
+        }
+        expect(CodeType::kComma);
+    }
+    return list;
 }
 
 // literal
@@ -607,17 +625,18 @@ ast::StmtType Parser::parseSimpleStmt()
         auto p = cur_pos;
         nextToken();
         auto rhs = parseExprList();
+        expect(CodeType::kSemiColon);
         return std::make_shared<ast::AssignStmt>(lhs, p, rhs);
     }
     default:
         break;
     }
-
     if (lhs.size() > 1)
     {
         expectError("one expression");
         return std::make_shared<ast::BadStmt>(lhs[0]->Start(), cur_pos);
     }
+    expect(CodeType::kSemiColon);
     // todo, maybe add ++/-- or other features
     return std::make_shared<ast::ExprStmt>(lhs[0]); // expression statement
 }
@@ -627,7 +646,26 @@ ast::StmtType Parser::parseIfStmt()
 #ifdef lilang_trace
     trace("IfStatement");
 #endif
-    return nullptr;
+    auto p = cur_pos;
+    expect(CodeType::kIf);
+    expect(CodeType::kLeftParenthese);
+    auto cond = parseExpression();
+    expect(CodeType::kRightParenthese);
+    auto if_block = parseBlock();
+    ast::StmtType else_block = nullptr;
+    if (cur_tok.type == CodeType::kElse)
+    {
+        nextToken();
+        if (cur_tok.type == CodeType::kIf)
+        {
+            else_block = parseIfStmt();
+        }
+        else
+        {
+            else_block = parseBlock();
+        }
+    }
+    return std::make_shared<ast::IfStmt>(p, cond, if_block, else_block);
 }
 
 ast::StmtType Parser::parseWhileStmt()
@@ -651,15 +689,38 @@ ast::StmtType Parser::parseReturnStmt()
 #ifdef lilang_trace
     trace("ReturnStatement");
 #endif
-    return nullptr;
+    auto p = cur_pos;
+    expect(CodeType::kReturn);
+    auto rhs = parseExprList();
+    expect(CodeType::kSemiColon);
+    return std::make_shared<ast::RetStmt>(p, rhs);
 }
 
+// let x, y, z type;
+// let x, y, z = e1, e2, e3;
 ast::StmtType Parser::parseDeclStmt()
 {
 #ifdef lilang_trace
     trace("DeclStatement");
 #endif
-    return nullptr;
+    auto p = cur_pos;
+    expect(CodeType::kLet);
+    auto lhs = parseIdentList();
+    if (cur_tok.type == CodeType::kAssign)
+    {
+        nextToken();
+        auto rhs = parseExprList();
+        expect(CodeType::kSemiColon);
+        auto decl = std::make_shared<ast::ValDecl>(p, lhs, rhs);
+        return std::make_shared<ast::DeclStmt>(decl);
+    }
+    else
+    {
+        auto t = parseType();
+        expect(CodeType::kSemiColon);
+        auto decl = std::make_shared<ast::ValDecl>(p, lhs, t);
+        return std::make_shared<ast::DeclStmt>(decl);
+    }
 }
 
 ast::StmtType Parser::parseBlock()

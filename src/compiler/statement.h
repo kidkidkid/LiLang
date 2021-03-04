@@ -73,6 +73,19 @@ namespace lilang
             }
         };
 
+        class RetStmt : public Stmt
+        {
+        public:
+            TokenPos ret;
+            ExprListType vals;
+            RetStmt() = default;
+            RetStmt(TokenPos r, ExprListType v) : ret(r), vals(v) {}
+            inline TokenPos Start()
+            {
+                return ret;
+            }
+        };
+
         class Block : public Stmt
         {
         public:
@@ -130,7 +143,7 @@ namespace lilang
             ExprListType rhs;
             AssignStmt() = default;
             AssignStmt(ExprListType l, TokenPos p, ExprListType r)
-                : lhs(l), assign_pos(p), rhs(r){}
+                : lhs(l), assign_pos(p), rhs(r) {}
             inline TokenPos Start()
             {
                 return lhs[0]->Start();

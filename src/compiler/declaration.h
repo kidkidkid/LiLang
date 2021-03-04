@@ -11,7 +11,7 @@ namespace lilang
     {
         class Ident;
         class FuncType;
-        class Block;        
+        class Block;
 
         class FuncDecl : public Decl
         {
@@ -33,11 +33,13 @@ namespace lilang
         {
         public:
             TokenPos let;
-            std::vector<std::shared_ptr<Ident>> names; // identifiers
+            ExprListType names; // identifiers
+            ExprType type;
             ExprListType vals;
             ValDecl() = default;
-            ValDecl(TokenPos l, std::vector<std::shared_ptr<Ident>> n, ExprListType v)
+            ValDecl(TokenPos l, ExprListType n, ExprListType v)
                 : let(l), names(n), vals(v) {}
+            ValDecl(TokenPos l, ExprListType n, ExprType t) : let(l), names(n), type(t) {}
             inline TokenPos Start()
             {
                 return let;
