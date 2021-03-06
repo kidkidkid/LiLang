@@ -8,7 +8,7 @@ lexical:
 
 syntax:
 	g++ -std=c++11 -O0\
-		./test/syntax_test.cpp ./src/compiler/syntax.cpp ./src/compiler/lexical.cpp \
+		./test/syntax_test.cpp ./src/compiler/syntax.cpp ./src/compiler/lexical.cpp ./src/compiler/ast.cpp \
 		-I./src/compiler \
 		-o syntax.out
 	./syntax.out

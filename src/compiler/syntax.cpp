@@ -369,9 +369,6 @@ ast::Type::Ptr Parser::tryParseType()
 // identifier typename
 ast::Type::Ptr Parser::parseTypeName()
 {
-#ifdef lilang_trace
-    trace("TypeName");
-#endif
     ast::TypeKind kind;
     if (cur_tok.value == "int")
     {
@@ -389,6 +386,9 @@ ast::Type::Ptr Parser::parseTypeName()
     {
         return nullptr;
     }
+#ifdef lilang_trace
+    trace("TypeName");
+#endif
     nextToken();
     return std::make_shared<ast::Type>(kind);
 }
@@ -557,10 +557,14 @@ ast::Stmt::Ptr Parser::parseStmt()
     case CodeType::kReturn:
         return parseReturnStmt();
     case CodeType::kLet:
-        return parseDeclStmt();
+    {
+        auto e = parseVarDeclStmt();
+        expect(CodeType::kSemiColon);
+        return e;
+    }
     case CodeType::kSemiColon:
     {
-        nextToken();
+        expect(CodeType::kSemiColon);
         return std::make_shared<ast::EmptyStmt>();
     }
     // first of expression
@@ -575,7 +579,11 @@ ast::Stmt::Ptr Parser::parseStmt()
     case CodeType::kNumber:
     case CodeType::kFloat:
     case CodeType::kLeftParenthese:
-        return parseSimpleStmt();
+    {
+        auto s = parseSimpleStmt();
+        expect(CodeType::kSemiColon);
+        return s;
+    }
     default:
         break;
     };
@@ -619,10 +627,10 @@ ast::Stmt::Ptr Parser::parseSimpleStmt()
     case CodeType::kBitsOrAssign:
     case CodeType::kBitsAndAssign:
     case CodeType::kBitsXorAssign:
+    case CodeType::kShortAssign:
     {
         nextToken();
         auto rhs = parseExprList();
-        expect(CodeType::kSemiColon);
         return std::make_shared<ast::AssignStmt>(lhs, rhs);
     }
     default:
@@ -634,7 +642,6 @@ ast::Stmt::Ptr Parser::parseSimpleStmt()
         return std::make_shared<ast::EmptyStmt>();
     }
     // todo, maybe add ++/-- or other features
-    expect(CodeType::kSemiColon);                   // end with semicolon
     return std::make_shared<ast::ExprStmt>(lhs[0]); // expression statement
 }
 
@@ -669,7 +676,12 @@ ast::Stmt::Ptr Parser::parseWhileStmt()
 #ifdef lilang_trace
     trace("WhileStatement");
 #endif
-    return nullptr;
+    expect(CodeType::kWhile);
+    expect(CodeType::kLeftParenthese);
+    auto e = parseExpression();
+    expect(CodeType::kRightParenthese);
+    auto b = parseBlock();
+    return std::make_shared<ast::WhileStmt>(e, b);
 }
 
 ast::Stmt::Ptr Parser::parseForStmt()
@@ -677,7 +689,25 @@ ast::Stmt::Ptr Parser::parseForStmt()
 #ifdef lilang_trace
     trace("IfStatement");
 #endif
-    return nullptr;
+    expect(CodeType::kFor);
+    expect(CodeType::kLeftParenthese);
+    // init statement
+    ast::Stmt::Ptr init;
+    if (cur_tok.type == CodeType::kLet)
+    {
+        init = parseVarDeclStmt();
+    }
+    else
+    {
+        init = parseSimpleStmt();
+    }
+    expect(CodeType::kSemiColon);
+    auto cond = parseExpression();
+    expect(CodeType::kSemiColon);
+    auto post = parseSimpleStmt();
+    expect(CodeType::kRightParenthese);
+    auto b = parseBlock();
+    return std::make_shared<ast::ForStmt>(init, cond, post, b);
 }
 
 ast::Stmt::Ptr Parser::parseReturnStmt()
@@ -693,7 +723,7 @@ ast::Stmt::Ptr Parser::parseReturnStmt()
 
 // let x, y, z type;
 // let x, y, z = e1, e2, e3;
-ast::Stmt::Ptr Parser::parseDeclStmt()
+ast::Stmt::Ptr Parser::parseVarDeclStmt()
 {
 #ifdef lilang_trace
     trace("DeclStatement");
@@ -722,6 +752,7 @@ ast::Decl::Ptr Parser::parseVarDecl()
     while (true)
     {
         var_list.push_back(std::make_shared<ast::Obj>(nullptr, cur_tok.value));
+        nextToken();
         if (cur_tok.type != CodeType::kComma)
         {
             break;
@@ -732,13 +763,11 @@ ast::Decl::Ptr Parser::parseVarDecl()
     {
         nextToken();
         auto rhs = parseExprList();
-        expect(CodeType::kSemiColon);
         return std::make_shared<ast::VarDecl>(var_list, rhs);
     }
     else
     {
         auto t = parseType();
-        expect(CodeType::kSemiColon);
         return std::make_shared<ast::VarDecl>(var_list, t);
     }
 }

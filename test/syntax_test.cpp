@@ -48,18 +48,31 @@ string_t if_stmt_three =
             y = 1000;
         }
 )";
+string_t for_stmt =
+    R"(
+    for(let x = 1; x < 100; x += 10) {
+        let x, y, z int;
+        x, y, z = 100, 10, 1;
+    }
+)";
+string_t while_stmt =
+    R"(
+    while(x <= 10 || x >= 100) {
+        x, y := 10, 100;
+    }
+)";
 
 int main()
 {
     int x;
     CodeError::List err_list;
-    auto tok_list = CodeFile::Parse(binary_expr, err_list);
+    auto tok_list = CodeFile::Parse(while_stmt, err_list);
     for (auto err : err_list)
     {
         std::cout << err.error_msg << std::endl;
     }
     Parser parser(tok_list);
-    auto e = parser.parseExpression();
+    auto e = parser.parseStmt();
     parser.printErrors();
     // auto c = std::dynamic_pointer_cast<ast::BinaryExpr>(e);
     // std::cout << CodeToken::Type2Str(c->op) << std::endl

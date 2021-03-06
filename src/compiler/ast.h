@@ -242,9 +242,10 @@ namespace lilang
             Stmt::Ptr init;
             Expr::Ptr condition;
             Stmt::Ptr post;
+            Stmt::Ptr block;
             ForStmt() = default;
-            ForStmt(Stmt::Ptr i, Expr::Ptr c, Stmt::Ptr p)
-                : init(i), condition(c), post(p) {}
+            ForStmt(Stmt::Ptr i, Expr::Ptr c, Stmt::Ptr p, Stmt::Ptr b)
+                : init(i), condition(c), post(p), block(b) {}
         };
 
         class RetStmt : public Stmt
