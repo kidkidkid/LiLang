@@ -66,10 +66,9 @@ namespace lilang
                     else if (tok == "fn")
                     {
                         cur_token.type = CodeType::kFn;
-                    }
-                    else if (tok == "return")
+                    } else if (tok == "return")
                     {
-                        cur_token.type = CodeType::kReturn;
+                        cur_token.type=CodeType::kReturn;
                     }
                 }
                 tok_list.push_back(cur_token);

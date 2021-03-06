@@ -4,9 +4,6 @@
 #include <map>
 #include "./lexical.h"
 #include "./ast.h"
-#include "./expression.h"
-#include "./declaration.h"
-#include "./statement.h"
 
 namespace lilang
 {
@@ -58,40 +55,42 @@ namespace lilang
             void expectError(const string_t &msg);
 
             // expression related
-            ast::ExprType parseExpression();
-            ast::ExprListType parseExprList();
-            ast::ExprType parseBinaryExpression(int);
-            ast::ExprType parseUnaryExpression();
-            ast::ExprType parsePrimaryExpression();
-            ast::ExprType parseIndex(ast::ExprType);
-            ast::ExprType parseCallOrConversion(ast::ExprType);
-            ast::ExprType parseOperand();
-            ast::ExprType parseIdent();
-            ast::ExprListType parseIdentList();
-            ast::ExprType parseBasicLit();
-            ast::ExprType parseType();
-            ast::ExprType tryParseType();
-            ast::ExprType parseTypeName();
-            ast::ExprType parsePointerType();
-            ast::ExprType parseArrayType();
-            ast::ExprType parseFuncType();
-            ast::FieldType parseField();
-            ast::FieldListType parseFnParamters();
-            ast::FieldListType parseFnResults();
-            ast::ExprType parseFuncLitOrType();
+            ast::Expr::Ptr parseExpression();
+            ast::Expr::List parseExprList();
+            ast::Expr::Ptr parseBinaryExpression(int);
+            ast::Expr::Ptr parseUnaryExpression();
+            ast::Expr::Ptr parsePrimaryExpression();
+            ast::Expr::Ptr parseIndex(ast::Expr::Ptr);
+            ast::Expr::Ptr parseCall(ast::Expr::Ptr);
+            ast::Expr::Ptr parseCast(ast::Type::Ptr);
+            ast::Expr::Ptr parseOperand();
+            ast::Expr::Ptr tryParseOperandName();
+            ast::Expr::Ptr parseBasicLit();
+            //type related
+            ast::Type::Ptr parseType();
+            ast::Type::Ptr tryParseType();
+            ast::Type::Ptr parseTypeName();
+            ast::Type::Ptr parsePointerType();
+            ast::Type::Ptr parseArrayType();
+            ast::Type::Ptr parseFuncType();
+            ast::Obj::Ptr parseField();
+            ast::Obj::List parseFnParamters();
+            ast::Type::List parseFnResults();
 
             // statement related
-            ast::StmtType parseStmt();
-            ast::StmtListType parseStmtList();
-            ast::StmtType parseSimpleStmt();
-            ast::StmtType parseIfStmt();
-            ast::StmtType parseWhileStmt();
-            ast::StmtType parseForStmt();
-            ast::StmtType parseBlock();
-            ast::StmtType parseDeclStmt();
-            ast::StmtType parseReturnStmt();
+            ast::Stmt::Ptr parseStmt();
+            ast::Stmt::List parseStmtList();
+            ast::Stmt::Ptr parseSimpleStmt();
+            ast::Stmt::Ptr parseIfStmt();
+            ast::Stmt::Ptr parseWhileStmt();
+            ast::Stmt::Ptr parseForStmt();
+            ast::Stmt::Ptr parseBlock();
+            ast::Stmt::Ptr parseDeclStmt();
+            ast::Stmt::Ptr parseReturnStmt();
 
             //declaration related
+            ast::Decl::Ptr parseVarDecl();
+            ast::Decl::Ptr parseFuncDecl();
         };
     }
 }

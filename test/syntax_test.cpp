@@ -6,10 +6,10 @@
 using namespace lilang::compiler;
 using namespace lilang;
 
-string_t func_type = "fn (fn(**int xx , int x)(), int x)(int, fn(int x)[]int)";
+string_t func_type = "fn (fn(**int xx , []*int x)(), int x)(int, fn(int x)[]int)";
 string_t unary_expr = "+-&^ffff(10, 10, 10)";
 string_t binary_expr = "10 > (20 * 10) || 10 /10 < 100 || true && -100 > 0";
-string_t conversion_expr = "int(x)";
+string_t cast_expr = "int8(100 + 100)";
 string_t expr_list = "10 < 100 && 10 > 1, x <= 100, 10 >= z";
 string_t simple_stmt = "x, y, z = 10, 10, 10";
 string_t block_stmt =
@@ -51,18 +51,15 @@ string_t if_stmt_three =
 
 int main()
 {
+    int x;
     CodeError::List err_list;
-    auto tok_list = CodeFile::Parse(if_stmt_three, err_list);
+    auto tok_list = CodeFile::Parse(binary_expr, err_list);
     for (auto err : err_list)
     {
         std::cout << err.error_msg << std::endl;
     }
     Parser parser(tok_list);
-    for (auto iter : tok_list)
-    {
-        std::cout << iter.value << std::endl;
-    }
-    auto e = parser.parseIfStmt();
+    auto e = parser.parseExpression();
     parser.printErrors();
     // auto c = std::dynamic_pointer_cast<ast::BinaryExpr>(e);
     // std::cout << CodeToken::Type2Str(c->op) << std::endl
