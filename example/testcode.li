@@ -1,7 +1,6 @@
 let x, y, x int;
 let mm = 10 * 100 + -1;
 
-
 fn test() {
 
 }
@@ -9,9 +8,15 @@ fn test() {
 
 fn test_two(int, int x, int y) (int, float)
 {
+    let z, y, x int;
+    let x, y = 10, (*int)(&z);
+    test := fn(fn(fn()(int))(int, int)) int
+    {
+        return 0xfffff + 0000;
+    };
     count := 1;
     for(m := 10; m >= 10 || m <= 100;m += 1) {
-        count += m;
+        count += test(10);
     }
     return count, 1.0;
 }

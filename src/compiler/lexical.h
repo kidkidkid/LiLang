@@ -91,6 +91,7 @@ namespace lilang
             static bool IsDecimalDigit(char_t);
             static string_t Type2Str(CodeType);
             static int Precedence(CodeType);
+            static void Print(List&);
         };
 
         struct CodeError
@@ -100,6 +101,7 @@ namespace lilang
             int column_number;
 
             typedef std::vector<CodeError> List;
+            static void Print(List&);
         };
 
         struct LexicalParser

@@ -36,6 +36,7 @@ for (int y = 1; y < 4; y += 1)
 } 
 return tmp;
 )";
+string_t err_code = "retuen1 0xffff";
 
 void printTokens(CodeToken::List &list)
 {
@@ -60,7 +61,7 @@ void printErrors(CodeError::List &list)
 int main()
 {
     CodeError::List err_list;
-    auto tok_list = LexicalParser::ParseString(compound_code, err_list);
+    auto tok_list = LexicalParser::ParseString(err_code, err_list);
     printTokens(tok_list);
     printErrors(err_list);
 }

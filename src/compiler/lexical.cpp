@@ -701,5 +701,23 @@ namespace lilang
             }
         }
 
+        void CodeError::Print(CodeError::List &list)
+        {
+            for (auto err : list)
+            {
+                std::cout << "(" << err.row_number << ", " << err.column_number << ") "
+                          << err.error_msg << std::endl;
+            }
+        }
+
+        void CodeToken::Print(CodeToken::List &list)
+        {
+             for (auto err : list)
+            {
+                std::cout << "(" << err.row_number << ", " << err.column_number << ") "
+                          << err.value << std::endl;
+            }
+        }
+
     }
 }

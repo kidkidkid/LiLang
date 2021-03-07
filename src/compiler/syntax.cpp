@@ -383,7 +383,6 @@ ast::Expr::Ptr Parser::ParseType()
     if (t == nullptr)
     {
         ExpectError("type");
-        NextToken();
         return std::make_shared<ast::BadExpr>();
     }
     return t;
@@ -595,7 +594,6 @@ ast::Stmt::Ptr Parser::ParseStmt()
     case CodeType::kLet:
     {
         auto e = ParseVarDeclStmt();
-        Expect(CodeType::kSemiColon);
         return e;
     }
     case CodeType::kSemiColon:

@@ -1,3 +1,5 @@
+#define private public
+
 #include "../src/compiler/syntax.h"
 
 using namespace lilang;
