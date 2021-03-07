@@ -13,3 +13,11 @@ syntax:
 		-o syntax.out
 	./syntax.out
 	rm ./syntax.out
+
+semantic:
+	g++ -std=c++11 -O0\
+		./test/semantic_test.cpp ./src/compiler/syntax.cpp ./src/compiler/lexical.cpp ./src/compiler/ast.cpp \
+		-I./src/compiler \
+		-o semantic.out
+	./semantic.out
+	rm ./semantic.out

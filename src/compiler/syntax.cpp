@@ -3,7 +3,7 @@
 #include <iomanip>
 #include "./syntax.h"
 
-#define repeatStringLit(N, S)   \
+#define RepeatStringLit(N, S)   \
     for (int i = 0; i < N; i++) \
     {                           \
         std::cout << S;         \
@@ -23,22 +23,21 @@ Parser::TokenMap Parser::statement_follow = {
     {CodeType::kRightBrace, true},
     {CodeType::kSemiColon, true},
 };
+Parser::TokenMap Parser::declaration_start = {
+    {CodeType::kLet, true},
+    {CodeType::kFn, true},
+};
 
-Parser::Parser(CodeToken::List list)
-{
-    this->tokens = list;
-    this->cur_iter = tokens.begin(); // 一开始用了list.begin()，不能取局部变量的迭代器
-    this->cur_pos = 0;
-    this->cur_tok = *cur_iter;
-}
-
+//********************************************************************
 // helper
-void Parser::nextToken()
+//********************************************************************
+
+void Parser::NextToken()
 {
 #ifdef lilang_trace
     auto tok = tokens[cur_pos];
     std::cout << std::setw(3) << tok.row_number << ":" << std::setw(3) << tok.column_number << ":";
-    repeatStringLit(Trace::trace_ident * 2, ".");
+    RepeatStringLit(Trace::trace_ident * 2, ".");
     std::cout << "\"" << cur_tok.value << "\"" << std::endl;
 #endif
     if (cur_iter != tokens.end() && cur_tok.type != CodeType::kEOF)
@@ -46,10 +45,16 @@ void Parser::nextToken()
         cur_iter++;
         cur_pos++;
         cur_tok = *cur_iter;
+        while (cur_tok.type == CodeType::kComment) // skip comment token
+        {
+            cur_iter++;
+            cur_pos++;
+            cur_tok = *cur_iter;
+        }
     }
 }
 
-ast::TokenPos Parser::expect(CodeType t)
+ast::TokenPos Parser::Expect(CodeType t)
 {
     if (cur_tok.type != t)
     {
@@ -57,22 +62,22 @@ ast::TokenPos Parser::expect(CodeType t)
         ss << CodeToken::Type2Str(t) << " expected, found " << cur_tok.value;
         error_list.push_back({cur_pos, ss.str()});
     }
-    nextToken();
+    NextToken();
     return cur_pos;
 }
 
-void Parser::expectError(const string_t &msg)
+void Parser::ExpectError(const string_t &msg)
 {
     stringstream_t ss;
     ss << msg << " expected, found " << cur_tok.value;
     error_list.push_back({cur_pos, ss.str()});
 }
 
-void Parser::exhaust(TokenMap &mp)
+void Parser::Exhaust(TokenMap &mp)
 {
     while (cur_tok.type != CodeType::kEOF && mp[cur_tok.type] == false)
     {
-        nextToken();
+        NextToken();
     }
 }
 
@@ -81,9 +86,9 @@ Parser::Trace::Trace(const string_t &msg, Parser *p) : p(p)
 {
     auto tok = p->tokens[p->cur_pos];
     std::cout << std::setw(3) << tok.row_number << ":" << std::setw(3) << tok.column_number << ":";
-    repeatStringLit(trace_ident * 2, ".");
-    repeatStringLit(1, msg);
-    repeatStringLit(1, "(\n");
+    RepeatStringLit(trace_ident * 2, ".");
+    RepeatStringLit(1, msg);
+    RepeatStringLit(1, "(\n");
     trace_ident++;
 }
 
@@ -92,11 +97,11 @@ Parser::Trace::~Trace()
     trace_ident--;
     auto tok = p->tokens[p->cur_pos];
     std::cout << std::setw(3) << tok.row_number << ":" << std::setw(3) << tok.column_number << ":";
-    repeatStringLit(trace_ident * 2, ".");
-    repeatStringLit(1, ")\n");
+    RepeatStringLit(trace_ident * 2, ".");
+    RepeatStringLit(1, ")\n");
 }
 
-void Parser::printErrors()
+void Parser::PrintErrors()
 {
     if (error_list.size() == 0)
     {
@@ -111,19 +116,80 @@ void Parser::printErrors()
 }
 
 //********************************************************************
-//expression related
+// file related
 //********************************************************************
 
-ast::Expr::Ptr Parser::parseExpression()
+ast::File::Ptr Parser::ParseFile(const string_t &file_name)
+{
+    CodeError::List err_list;
+    auto tok_list = LexicalParser::ParseFile(file_name, err_list);
+    this->tokens = tok_list;
+    this->cur_pos = 0;
+    this->cur_iter = tokens.begin();
+    this->cur_tok = *cur_iter;
+    return Parse();
+}
+
+ast::File::Ptr Parser::ParseString(const string_t &str)
+{
+    CodeError::List err_list;
+    auto tok_list = LexicalParser::ParseString(str, err_list);
+    this->tokens = tok_list;
+    this->cur_pos = 0;
+    this->cur_iter = tokens.begin();
+    this->cur_tok = *cur_iter;
+    return Parse();
+}
+
+ast::File::Ptr Parser::ParseTokens(CodeToken::List &list)
+{
+    this->tokens = list;
+    this->cur_pos = 0;
+    this->cur_iter = tokens.begin();
+    this->cur_tok = *cur_iter;
+    return Parse();
+}
+
+ast::File::Ptr Parser::Parse()
+{
+    ast::File::Ptr file = std::make_shared<ast::File>();
+    while (true)
+    {
+        switch (cur_tok.type)
+        {
+        case CodeType::kLet:
+            file->AddDecl(ParseVarDecl());
+            break;
+        case CodeType::kFn:
+            file->AddDecl(ParseFuncDecl());
+            break;
+        case CodeType::kEOF:
+            return file;
+        default:
+        {
+            ExpectError("declaration");
+            Exhaust(declaration_start);
+        }
+        break;
+        }
+    }
+    return file;
+}
+
+//********************************************************************
+// expression related
+//********************************************************************
+
+ast::Expr::Ptr Parser::ParseExpression()
 {
 #ifdef lilang_trace
     trace("Expression");
 #endif
-    return parseBinaryExpression(1);
+    return ParseBinaryExpression(1);
 }
 
 // expression{, expression}
-ast::Expr::List Parser::parseExprList()
+ast::Expr::List Parser::ParseExprList()
 {
 #ifdef lilang_trace
     trace("ExpressionList");
@@ -131,23 +197,23 @@ ast::Expr::List Parser::parseExprList()
     ast::Expr::List list;
     while (true)
     {
-        list.push_back(parseExpression()); // rvalue
+        list.push_back(ParseExpression()); // rvalue
         if (cur_tok.type != CodeType::kComma)
         {
             break;
         }
-        expect(CodeType::kComma);
+        Expect(CodeType::kComma);
     }
     return list;
 }
 
 // The power of Recursive!
-ast::Expr::Ptr Parser::parseBinaryExpression(int before_prec)
+ast::Expr::Ptr Parser::ParseBinaryExpression(int before_prec)
 {
 #ifdef lilang_trace
     trace("BinaryExpr");
 #endif
-    auto x = parseUnaryExpression();
+    auto x = ParseUnaryExpression();
     while (true)
     {
         int cur_prec = CodeToken::Precedence(cur_tok.type);
@@ -162,13 +228,13 @@ ast::Expr::Ptr Parser::parseBinaryExpression(int before_prec)
         {
             return x;
         }
-        expect(op);
-        auto right = parseBinaryExpression(cur_prec + 1);
+        Expect(op);
+        auto right = ParseBinaryExpression(cur_prec + 1);
         x = std::make_shared<ast::BinaryExpr>(x, op, right);
     }
 }
 
-ast::Expr::Ptr Parser::parseUnaryExpression()
+ast::Expr::Ptr Parser::ParseUnaryExpression()
 {
 #ifdef lilang_trace
     trace("UnaryExpr");
@@ -183,33 +249,33 @@ ast::Expr::Ptr Parser::parseUnaryExpression()
     case CodeType::kLogicNot:
     {
         auto t = cur_tok.type;
-        nextToken();
-        auto ue = parseUnaryExpression();
+        NextToken();
+        auto ue = ParseUnaryExpression();
         return std::make_shared<ast::UnaryExpr>(t, ue);
     }
     default:
-        return parsePrimaryExpression();
+        return ParsePrimaryExpression();
     }
 }
 
 // type(expression)
 // operand[expression]
 // operand(arg1, arg2, arg3)
-ast::Expr::Ptr Parser::parsePrimaryExpression()
+ast::Expr::Ptr Parser::ParsePrimaryExpression()
 {
 #ifdef lilang_trace
     trace("PrimaryExpr");
 #endif
-    auto p = parseOperand();
+    auto p = ParseOperand();
     while (true)
     {
         if (cur_tok.type == CodeType::kLeftParenthese)
         {
-            p = parseCall(p);
+            p = ParseCall(p);
         }
         else if (cur_tok.type == CodeType::kLeftBracket)
         {
-            p = parseIndex(p);
+            p = ParseIndex(p);
         }
         else
         {
@@ -219,7 +285,7 @@ ast::Expr::Ptr Parser::parsePrimaryExpression()
     return p;
 }
 
-ast::Expr::Ptr Parser::parseOperand()
+ast::Expr::Ptr Parser::ParseOperand()
 {
 #ifdef lilang_trace
     trace("Operand");
@@ -228,80 +294,66 @@ ast::Expr::Ptr Parser::parseOperand()
     {
     case CodeType::kIdentifier: // variable
     {
-        auto e = tryParseOperandName();
-        if (e != nullptr)
-        {
-            return e;
-        }
-        break;
+        return ParseIdent();
     }
     case CodeType::kLeftParenthese: // (expression)
     {
-        expect(CodeType::kLeftParenthese);
-        auto e = parseExpression();
-        expect(CodeType::kRightParenthese);
+        Expect(CodeType::kLeftParenthese);
+        auto e = ParseExpression();
+        Expect(CodeType::kRightParenthese);
         return std::make_shared<ast::ParenExpr>(e);
     }
     case CodeType::kStringLiteral:
     case CodeType::kNumber:
     case CodeType::kFloat:
-        return parseBasicLit();
+        return ParseBasicLit();
     case CodeType::kFn:
     {
-        // function literal OR function type cast
-        auto t = parseFuncType();
+        // function literal OR function type
+        auto t = ParseFuncType();
         if (cur_tok.type == CodeType::kLeftBrace)
         {
-            return std::make_shared<ast::FuncLit>(t, parseBlock());
+            return std::make_shared<ast::FuncLit>(t, ParseBlock());
         }
         else
         {
-            return parseCast(t);
+            return t;
         }
     }
     default:
         break;
     }
     // type cast
-    auto t = tryParseType();
+    auto t = TryParseType();
     if (t != nullptr)
     {
-        return parseCast(t);
+        return t;
     }
-    expectError("operand");
-    exhaust(expression_follow);
+    ExpectError("operand");
+    Exhaust(expression_follow);
     return std::make_shared<ast::BadExpr>();
 }
 
-ast::Expr::Ptr Parser::tryParseOperandName()
+ast::Expr::Ptr Parser::ParseIdent()
 {
-    if (cur_tok.type != CodeType::kIdentifier)
-    {
-        return nullptr;
-    }
-    //todo, type?
-    if (cur_tok.value != "int" && cur_tok.value != "float" && cur_tok.value != "string")
-    {
-        auto o = std::make_shared<ast::OperandName>(cur_tok.value);
-        nextToken();
-        return o;
-    }
-    return nullptr;
+    auto ident = std::make_shared<ast::Ident>(cur_tok.value);
+    NextToken();
+    return ident;
 }
 
-ast::Expr::Ptr Parser::parseCall(ast::Expr::Ptr e)
+ast::Expr::Ptr Parser::ParseCall(ast::Expr::Ptr e)
 {
 #ifdef lilang_trace
     trace("Call");
 #endif
     ast::Expr::List arg_list;
-    expect(CodeType::kLeftParenthese);
+    Expect(CodeType::kLeftParenthese);
     while (true)
     {
-        arg_list.push_back(parseExpression());
+        arg_list.push_back(ParseExpression());
         if (cur_tok.type == CodeType::kComma)
         {
-            nextToken();
+            NextToken();
             continue;
         }
         else
@@ -309,142 +361,125 @@ ast::Expr::Ptr Parser::parseCall(ast::Expr::Ptr e)
             break;
         }
     }
-    expect(CodeType::kRightParenthese);
+    Expect(CodeType::kRightParenthese);
     return std::make_shared<ast::CallExpr>(e, arg_list);
 }
 
-ast::Expr::Ptr Parser::parseCast(ast::Type::Ptr t)
-{
-#ifdef lilang_trace
-    trace("Cast");
-#endif
-    expect(CodeType::kLeftParenthese);
-    auto e = parseExpression();
-    expect(CodeType::kRightParenthese);
-    return std::make_shared<ast::CastExpr>(t, e);
-}
-
-ast::Expr::Ptr Parser::parseIndex(ast::Expr::Ptr o)
+ast::Expr::Ptr Parser::ParseIndex(ast::Expr::Ptr o)
 {
 #ifdef lilang_trace
     trace("Index");
 #endif
-    expect(CodeType::kLeftBracket);
-    auto i = parseExpression();
-    expect(CodeType::kRightBracket);
+    Expect(CodeType::kLeftBracket);
+    auto i = ParseExpression();
+    Expect(CodeType::kRightBracket);
     return std::make_shared<ast::IndexExpr>(o, i);
 }
 
 // parse type
-ast::Type::Ptr Parser::parseType()
+ast::Expr::Ptr Parser::ParseType()
 {
-    auto t = tryParseType();
+    auto t = TryParseType();
     if (t == nullptr)
     {
-        expectError("type");
-        nextToken();
-        return std::make_shared<ast::Type>(ast::TypeKind::kInvalid);
+        ExpectError("type");
+        NextToken();
+        return std::make_shared<ast::BadExpr>();
     }
     return t;
 }
 
 // return type or null if no type found
-ast::Type::Ptr Parser::tryParseType()
+ast::Expr::Ptr Parser::TryParseType()
 {
     switch (cur_tok.type)
     {
     case CodeType::kMultiply:
-        return parsePointerType();
+        return ParsePointerType();
     case CodeType::kLeftBracket:
-        return parseArrayType();
+        return ParseArrayType();
     case CodeType::kIdentifier:
-        return parseTypeName();
+        return ParseTypeName();
     case CodeType::kFn:
-        return parseFuncType();
+        return ParseFuncType();
     default:
         return nullptr;
     }
 }
 
 // identifier typename
-ast::Type::Ptr Parser::parseTypeName()
+ast::Expr::Ptr Parser::ParseTypeName()
 {
-    ast::TypeKind kind;
-    if (cur_tok.value == "int")
-    {
-        kind = ast::TypeKind::kInt;
-    }
-    else if (cur_tok.value == "string")
-    {
-        kind = ast::TypeKind::kString;
-    }
-    else if (cur_tok.value == "float")
-    {
-        kind = ast::TypeKind::kFloat;
-    }
-    else // todo typedef
-    {
-        return nullptr;
-    }
 #ifdef lilang_trace
     trace("TypeName");
 #endif
-    nextToken();
-    return std::make_shared<ast::Type>(kind);
+    auto t = std::make_shared<ast::Ident>(cur_tok.value);
+    NextToken();
+    return t;
 }
 
 // ****int
-ast::Type::Ptr Parser::parsePointerType()
+ast::Expr::Ptr Parser::ParsePointerType()
 {
 #ifdef lilang_trace
     trace("PointerExpr");
 #endif
-    expect(CodeType::kMultiply);
-    auto t = parseType();
-    return std::make_shared<ast::Type>(ast::TypeKind::kPointer, t);
+    Expect(CodeType::kMultiply);
+    auto t = ParseType();
+    return std::make_shared<ast::StarExpr>(t);
 }
 
 // [][][]*int
-ast::Type::Ptr Parser::parseArrayType()
+ast::Expr::Ptr Parser::ParseArrayType()
 {
 #ifdef lilang_trace
     trace("ArrayExpr");
 #endif
-    expect(CodeType::kLeftBracket);
-    expect(CodeType::kRightBracket);
-    auto t = parseType();
-    return std::make_shared<ast::Type>(ast::TypeKind::kArray, t);
+    Expect(CodeType::kLeftBracket);
+    Expect(CodeType::kRightBracket);
+    return std::make_shared<ast::ArrayType>(ParseType());
 }
 
 // fn(int, int)()
-ast::Type::Ptr Parser::parseFuncType()
+ast::FuncType::Ptr Parser::ParseFuncType()
 {
 #ifdef lilang_trace
     trace("FuncType");
 #endif
-    expect(CodeType::kFn);
-    auto params = parseFnParamters();
-    auto returns = parseFnResults();
-    return std::make_shared<ast::Type>(ast::TypeKind::kFn, params, returns);
+    Expect(CodeType::kFn);
+    auto args = ParseFnParamters();
+    auto rets = ParseFnResults();
+    return std::make_shared<ast::FuncType>(args, rets);
+}
+
+ast::Expr::Ptr Parser::ParseFuncLit()
+{
+#ifdef lilang_trace
+    trace("FuncLit");
+#endif
+    Expect(CodeType::kFn);
+    auto type = ParseFuncType();
+    auto body = ParseBlock();
+    return std::make_shared<ast::FuncLit>(type, body);
 }
 
 // (int x , int y, float z)
 // (int, float)
-ast::Obj::List Parser::parseFnParamters()
+ast::Field::List Parser::ParseFnParamters()
 {
 #ifdef lilang_trace
     trace("Parametes");
 #endif
-    ast::Obj::List params;
-    expect(CodeType::kLeftParenthese);
+    ast::Field::List params;
+    Expect(CodeType::kLeftParenthese);
     if (cur_tok.type != CodeType::kRightParenthese)
     {
         while (true)
         {
-            params.push_back(parseField());
+            params.push_back(ParseField());
             if (cur_tok.type == CodeType::kComma)
             {
-                nextToken();
+                NextToken();
                 continue;
             }
             else
@@ -453,31 +488,31 @@ ast::Obj::List Parser::parseFnParamters()
             }
         }
     }
-    expect(CodeType::kRightParenthese);
+    Expect(CodeType::kRightParenthese);
     return params;
 }
 
 // int
 // ()
 // (int, int)
-ast::Type::List Parser::parseFnResults()
+ast::Expr::List Parser::ParseFnResults()
 {
 #ifdef lilang_trace
     trace("Results");
 #endif
-    ast::Type::List returns;
+    ast::Expr::List returns;
     // have multiple retuen values
     if (cur_tok.type == CodeType::kLeftParenthese)
     {
-        nextToken();
+        NextToken();
         if (cur_tok.type != CodeType::kRightParenthese)
         {
             while (true)
             {
-                returns.push_back(parseType());
+                returns.push_back(ParseType());
                 if (cur_tok.type == CodeType::kComma)
                 {
-                    nextToken();
+                    NextToken();
                     continue;
                 }
                 else
@@ -486,11 +521,11 @@ ast::Type::List Parser::parseFnResults()
                 }
             }
         }
-        expect(CodeType::kRightParenthese);
+        Expect(CodeType::kRightParenthese);
     }
     else // have exactly one type or no return values
     {
-        auto t = parseType();
+        auto t = TryParseType();
         if (t != nullptr)
         {
             returns.push_back(t);
@@ -500,21 +535,22 @@ ast::Type::List Parser::parseFnResults()
 }
 
 // type identifier OR type
-ast::Obj::Ptr Parser::parseField()
+ast::Field::Ptr Parser::ParseField()
 {
-    auto t = parseType();
+    auto t = ParseType();
     if (cur_tok.type == CodeType::kComma ||
         cur_tok.type == CodeType::kRightParenthese ||
         cur_tok.type == CodeType::kEOF)
     {
-        return std::make_shared<ast::Obj>(t, "_");
+        return std::make_shared<ast::Field>("_", t);
     }
-    nextToken();
-    return std::make_shared<ast::Obj>(t, cur_tok.value);
+    auto name = cur_tok.value;
+    NextToken();
+    return std::make_shared<ast::Field>(name, t);
 }
 
 // literal
-ast::Expr::Ptr Parser::parseBasicLit()
+ast::Expr::Ptr Parser::ParseBasicLit()
 {
     ast::Type::Ptr t;
     if (cur_tok.type == CodeType::kNumber)
@@ -530,7 +566,7 @@ ast::Expr::Ptr Parser::parseBasicLit()
         t = std::make_shared<ast::Type>(ast::TypeKind::kString);
     }
     auto lit = std::make_shared<ast::BasicLiteral>(t, cur_tok.value);
-    nextToken();
+    NextToken();
     return lit;
 }
 
@@ -539,7 +575,7 @@ ast::Expr::Ptr Parser::parseBasicLit()
 //********************************************************************
 
 // semicolon is expect in each statement, some statements dont end with semicolon
-ast::Stmt::Ptr Parser::parseStmt()
+ast::Stmt::Ptr Parser::ParseStmt()
 {
 #ifdef lilang_trace
     trace("Statement");
@@ -547,24 +583,24 @@ ast::Stmt::Ptr Parser::parseStmt()
     switch (cur_tok.type)
     {
     case CodeType::kIf:
-        return parseIfStmt();
+        return ParseIfStmt();
     case CodeType::kWhile:
-        return parseWhileStmt();
+        return ParseWhileStmt();
     case CodeType::kFor:
-        return parseForStmt();
+        return ParseForStmt();
     case CodeType::kLeftBrace:
-        return parseBlock();
+        return ParseBlock();
     case CodeType::kReturn:
-        return parseReturnStmt();
+        return ParseReturnStmt();
     case CodeType::kLet:
     {
-        auto e = parseVarDeclStmt();
-        expect(CodeType::kSemiColon);
+        auto e = ParseVarDeclStmt();
+        Expect(CodeType::kSemiColon);
         return e;
     }
     case CodeType::kSemiColon:
     {
-        expect(CodeType::kSemiColon);
+        Expect(CodeType::kSemiColon);
         return std::make_shared<ast::EmptyStmt>();
     }
     // first of expression
@@ -580,19 +616,19 @@ ast::Stmt::Ptr Parser::parseStmt()
     case CodeType::kFloat:
     case CodeType::kLeftParenthese:
     {
-        auto s = parseSimpleStmt();
-        expect(CodeType::kSemiColon);
+        auto s = ParseSimpleStmt();
+        Expect(CodeType::kSemiColon);
         return s;
     }
     default:
         break;
     };
-    expectError("statement");
-    exhaust(statement_follow); // if can not parse stmt, exhaust until ; OR }
+    ExpectError("statement");
+    Exhaust(statement_follow); // if can not parse stmt, exhaust until ; OR }
     return std::make_shared<ast::EmptyStmt>();
 }
 
-ast::Stmt::List Parser::parseStmtList()
+ast::Stmt::List Parser::ParseStmtList()
 {
 #ifdef lilang_trace
     trace("StatementList");
@@ -605,18 +641,18 @@ ast::Stmt::List Parser::parseStmtList()
         {
             break;
         }
-        list.push_back(parseStmt()); // rvalue
+        list.push_back(ParseStmt()); // rvalue
     }
     return list;
 }
 
 // assign
-ast::Stmt::Ptr Parser::parseSimpleStmt()
+ast::Stmt::Ptr Parser::ParseSimpleStmt()
 {
 #ifdef lilang_trace
     trace("SimpleStatement");
 #endif
-    auto lhs = parseExprList();
+    auto lhs = ParseExprList();
     switch (cur_tok.type)
     {
     case CodeType::kAssign:
@@ -629,8 +665,8 @@ ast::Stmt::Ptr Parser::parseSimpleStmt()
     case CodeType::kBitsXorAssign:
     case CodeType::kShortAssign:
     {
-        nextToken();
-        auto rhs = parseExprList();
+        NextToken();
+        auto rhs = ParseExprList();
         return std::make_shared<ast::AssignStmt>(lhs, rhs);
     }
     default:
@@ -638,136 +674,153 @@ ast::Stmt::Ptr Parser::parseSimpleStmt()
     }
     if (lhs.size() > 1)
     {
-        expectError("one expression");
+        ExpectError("one expression");
         return std::make_shared<ast::EmptyStmt>();
     }
     // todo, maybe add ++/-- or other features
     return std::make_shared<ast::ExprStmt>(lhs[0]); // expression statement
 }
 
-ast::Stmt::Ptr Parser::parseIfStmt()
+ast::Stmt::Ptr Parser::ParseIfStmt()
 {
 #ifdef lilang_trace
     trace("IfStatement");
 #endif
-    expect(CodeType::kIf);
-    expect(CodeType::kLeftParenthese);
-    auto cond = parseExpression();
-    expect(CodeType::kRightParenthese);
-    auto if_block = parseBlock();
+    Expect(CodeType::kIf);
+    Expect(CodeType::kLeftParenthese);
+    auto cond = ParseExpression();
+    Expect(CodeType::kRightParenthese);
+    auto if_block = ParseBlock();
     ast::Stmt::Ptr else_block = nullptr;
     if (cur_tok.type == CodeType::kElse)
     {
-        nextToken();
+        NextToken();
         if (cur_tok.type == CodeType::kIf)
         {
-            else_block = parseIfStmt();
+            else_block = ParseIfStmt();
         }
         else
         {
-            else_block = parseBlock();
+            else_block = ParseBlock();
         }
     }
     return std::make_shared<ast::IfStmt>(cond, if_block, else_block);
 }
 
-ast::Stmt::Ptr Parser::parseWhileStmt()
+ast::Stmt::Ptr Parser::ParseWhileStmt()
 {
 #ifdef lilang_trace
     trace("WhileStatement");
 #endif
-    expect(CodeType::kWhile);
-    expect(CodeType::kLeftParenthese);
-    auto e = parseExpression();
-    expect(CodeType::kRightParenthese);
-    auto b = parseBlock();
+    Expect(CodeType::kWhile);
+    Expect(CodeType::kLeftParenthese);
+    auto e = ParseExpression();
+    Expect(CodeType::kRightParenthese);
+    auto b = ParseBlock();
     return std::make_shared<ast::WhileStmt>(e, b);
 }
 
-ast::Stmt::Ptr Parser::parseForStmt()
+ast::Stmt::Ptr Parser::ParseForStmt()
 {
 #ifdef lilang_trace
     trace("IfStatement");
 #endif
-    expect(CodeType::kFor);
-    expect(CodeType::kLeftParenthese);
+    Expect(CodeType::kFor);
+    Expect(CodeType::kLeftParenthese);
     // init statement
     ast::Stmt::Ptr init;
     if (cur_tok.type == CodeType::kLet)
     {
-        init = parseVarDeclStmt();
+        init = ParseVarDeclStmt();
     }
     else
     {
-        init = parseSimpleStmt();
+        init = ParseSimpleStmt();
+        Expect(CodeType::kSemiColon);
     }
-    expect(CodeType::kSemiColon);
-    auto cond = parseExpression();
-    expect(CodeType::kSemiColon);
-    auto post = parseSimpleStmt();
-    expect(CodeType::kRightParenthese);
-    auto b = parseBlock();
+    auto cond = ParseExpression();
+    Expect(CodeType::kSemiColon);
+    auto post = ParseSimpleStmt();
+    Expect(CodeType::kRightParenthese);
+    auto b = ParseBlock();
     return std::make_shared<ast::ForStmt>(init, cond, post, b);
 }
 
-ast::Stmt::Ptr Parser::parseReturnStmt()
+ast::Stmt::Ptr Parser::ParseReturnStmt()
 {
 #ifdef lilang_trace
     trace("ReturnStatement");
 #endif
-    expect(CodeType::kReturn);
-    auto rhs = parseExprList();
-    expect(CodeType::kSemiColon);
+    Expect(CodeType::kReturn);
+    auto rhs = ParseExprList();
+    Expect(CodeType::kSemiColon);
     return std::make_shared<ast::RetStmt>(rhs);
 }
 
 // let x, y, z type;
 // let x, y, z = e1, e2, e3;
-ast::Stmt::Ptr Parser::parseVarDeclStmt()
+ast::Stmt::Ptr Parser::ParseVarDeclStmt()
 {
-#ifdef lilang_trace
-    trace("DeclStatement");
-#endif
-    return std::make_shared<ast::DeclStmt>(parseVarDecl());
+    return std::make_shared<ast::DeclStmt>(ParseVarDecl());
 }
 
-ast::Block::Ptr Parser::parseBlock()
+ast::Block::Ptr Parser::ParseBlock()
 {
 #ifdef lilang_trace
     trace("Block");
 #endif
-    expect(CodeType::kLeftBrace);
-    auto list = parseStmtList();
-    expect(CodeType::kRightBrace);
+    Expect(CodeType::kLeftBrace);
+    auto list = ParseStmtList();
+    Expect(CodeType::kRightBrace);
     return std::make_shared<ast::Block>(list);
 }
 
 //********************************************************************
 // declaration related
 //********************************************************************
-ast::Decl::Ptr Parser::parseVarDecl()
+ast::Decl::Ptr Parser::ParseVarDecl()
 {
-    expect(CodeType::kLet);
-    ast::Obj::List var_list;
+#ifdef lilang_trace
+    trace("VarDecl");
+#endif
+    Expect(CodeType::kLet);
+    std::vector<string_t> names;
     while (true)
     {
-        var_list.push_back(std::make_shared<ast::Obj>(nullptr, cur_tok.value));
-        nextToken();
+        names.push_back(cur_tok.value);
+        NextToken(); // skip identifier
         if (cur_tok.type != CodeType::kComma)
         {
             break;
         }
-        nextToken();
+        NextToken(); // skip comma
     }
     if (cur_tok.type == CodeType::kAssign)
     {
-        nextToken();
-        auto rhs = parseExprList();
-        return std::make_shared<ast::VarDecl>(var_list, rhs);
+        NextToken();
+        auto rhs = ParseExprList();
+        Expect(CodeType::kSemiColon);
+        return std::make_shared<ast::VarDecl>(names, rhs);
     }
     else
     {
-        auto t = parseType();
-        return std::make_shared<ast::VarDecl>(var_list, t);
+        auto t = ParseType();
+        Expect(CodeType::kSemiColon);
+        return std::make_shared<ast::VarDecl>(names, t);
     }
+}
+
+ast::Decl::Ptr Parser::ParseFuncDecl()
+{
+#ifdef lilang_trace
+    trace("FuncDecl");
+#endif
+    Expect(CodeType::kFn);
+    auto name = cur_tok.value;
+    NextToken();
+    auto args = ParseFnParamters();
+    auto rets = ParseFnResults();
+    auto type = std::make_shared<ast::FuncType>(args, rets);
+    auto body = ParseBlock();
+    return std::make_shared<ast::FuncDecl>(name, type, body);
 }

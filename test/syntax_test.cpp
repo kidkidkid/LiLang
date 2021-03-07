@@ -61,19 +61,30 @@ string_t while_stmt =
         x, y := 10, 100;
     }
 )";
+string_t fn_decl =
+    R"(
+fn lzp(int test, int, float) (int)
+{
+    return 10; //comment
+}
+)";
 
 int main()
 {
     int x;
     CodeError::List err_list;
-    auto tok_list = CodeFile::Parse(while_stmt, err_list);
+    auto tok_list = LexicalParser::ParseString(fn_decl, err_list);
     for (auto err : err_list)
     {
         std::cout << err.error_msg << std::endl;
     }
-    Parser parser(tok_list);
-    auto e = parser.parseStmt();
-    parser.printErrors();
+    Parser parser;
+    parser.tokens = tok_list;
+    parser.cur_pos = 0;
+    parser.cur_iter = parser.tokens.begin();
+    parser.cur_tok = *parser.cur_iter;
+    auto e = parser.ParseFuncDecl();
+    parser.PrintErrors();
     // auto c = std::dynamic_pointer_cast<ast::BinaryExpr>(e);
     // std::cout << CodeToken::Type2Str(c->op) << std::endl
     //           << c->right->Start() << std::endl;

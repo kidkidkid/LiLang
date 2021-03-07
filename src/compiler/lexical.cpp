@@ -1,4 +1,3 @@
-#include <sstream>
 #include <iostream>
 #include "lexical.h"
 
@@ -6,8 +5,15 @@ namespace lilang
 {
     namespace compiler
     {
+        CodeToken::List LexicalParser::ParseFile(const string_t &file_name, CodeError::List &err_list)
+        {
+            fstream_t f(file_name);
+            stringstream_t ss;
+            ss << f.rdbuf();
+            return ParseString(ss.str(), err_list);
+        }
 
-        CodeToken::List CodeFile::Parse(const string_t &file, CodeError::List &err_list)
+        CodeToken::List LexicalParser::ParseString(const string_t &file, CodeError::List &err_list)
         {
             enum class ParseState
             {
@@ -29,7 +35,7 @@ namespace lilang
             const char *str = file.c_str();
             const char *row_begin = str;
             const char *token_begin = str;
-            int row_number = 0;
+            int row_number = 1;
             CodeToken cur_token;
             CodeToken::List tok_list;
 

@@ -13,16 +13,71 @@ namespace lilang
         {
         public:
             Parser() = default;
-            Parser(CodeToken::List);
-            std::shared_ptr<ast::File> parse();
-            void printErrors();
+            ast::File::Ptr ParseFile(const string_t &);
+            ast::File::Ptr ParseTokens(CodeToken::List &);
+            ast::File::Ptr ParseString(const string_t &);
+            void PrintErrors();
 
-            typedef struct Error
-            {
-                ast::TokenPos pos;
-                string_t msg;
-            } Error;
+        private:
+            using TokenMap = std::map<CodeType, bool>;
+            static TokenMap expression_follow;
+            static TokenMap statement_follow;
+            static TokenMap declaration_start;
 
+            // current token
+            ast::TokenPos cur_pos;
+            CodeToken::List::iterator cur_iter;
+            CodeToken::List tokens;
+            CodeToken cur_tok;
+
+            // helper
+            void NextToken();
+            void Exhaust(TokenMap &);
+            ast::TokenPos Expect(CodeType);
+            void ExpectError(const string_t &msg);
+
+            // parse the top level
+            ast::File::Ptr Parse();
+
+            // expression related
+            ast::Expr::Ptr ParseExpression();
+            ast::Expr::List ParseExprList();
+            ast::Expr::Ptr ParseBinaryExpression(int);
+            ast::Expr::Ptr ParseUnaryExpression();
+            ast::Expr::Ptr ParsePrimaryExpression();
+            ast::Expr::Ptr ParseIndex(ast::Expr::Ptr);
+            ast::Expr::Ptr ParseCall(ast::Expr::Ptr);
+            ast::Expr::Ptr ParseOperand();
+            ast::Expr::Ptr ParseIdent();
+            ast::Expr::Ptr ParseBasicLit();
+            ast::Expr::Ptr ParseFuncLit();
+            // type related
+            ast::Expr::Ptr ParseType();
+            ast::Expr::Ptr TryParseType();
+            ast::Expr::Ptr ParseTypeName();
+            ast::Expr::Ptr ParsePointerType();
+            ast::Expr::Ptr ParseArrayType();
+            ast::Expr::Ptr ParseFuncType();
+            ast::Field::Ptr ParseField();
+            ast::Field::List ParseFnParamters();
+            ast::Expr::List ParseFnResults();
+
+            // statement related
+            ast::Stmt::Ptr ParseStmt();
+            ast::Stmt::List ParseStmtList();
+            ast::Stmt::Ptr ParseSimpleStmt();
+            ast::Stmt::Ptr ParseIfStmt();
+            ast::Stmt::Ptr ParseWhileStmt();
+            ast::Stmt::Ptr ParseForStmt();
+            ast::Stmt::Ptr ParseBlock();
+            ast::Stmt::Ptr ParseVarDeclStmt();
+            ast::Stmt::Ptr ParseReturnStmt();
+
+            // declaration related
+            ast::Decl::Ptr ParseVarDecl();
+            ast::Decl::Ptr ParseFuncDecl();
+
+            // debug trace
             // use constructor and deconstructor to realize facility like defer in Golang
             class Trace
             {
@@ -34,63 +89,13 @@ namespace lilang
                 ~Trace();
             };
 
-        private:
-            using TokenMap = std::map<CodeType, bool>;
-            static TokenMap expression_follow;
-            static TokenMap statement_follow;
-
-            // current token
-            ast::TokenPos cur_pos;
-            CodeToken::List::iterator cur_iter;
-            CodeToken::List tokens;
-            CodeToken cur_tok;
-
-            //errors
+            // errors
+            typedef struct Error
+            {
+                ast::TokenPos pos;
+                string_t msg;
+            } Error;
             std::vector<Error> error_list;
-
-            // helper
-            void nextToken();
-            void exhaust(TokenMap &);
-            ast::TokenPos expect(CodeType);
-            void expectError(const string_t &msg);
-
-            // expression related
-            ast::Expr::Ptr parseExpression();
-            ast::Expr::List parseExprList();
-            ast::Expr::Ptr parseBinaryExpression(int);
-            ast::Expr::Ptr parseUnaryExpression();
-            ast::Expr::Ptr parsePrimaryExpression();
-            ast::Expr::Ptr parseIndex(ast::Expr::Ptr);
-            ast::Expr::Ptr parseCall(ast::Expr::Ptr);
-            ast::Expr::Ptr parseCast(ast::Type::Ptr);
-            ast::Expr::Ptr parseOperand();
-            ast::Expr::Ptr tryParseOperandName();
-            ast::Expr::Ptr parseBasicLit();
-            //type related
-            ast::Type::Ptr parseType();
-            ast::Type::Ptr tryParseType();
-            ast::Type::Ptr parseTypeName();
-            ast::Type::Ptr parsePointerType();
-            ast::Type::Ptr parseArrayType();
-            ast::Type::Ptr parseFuncType();
-            ast::Obj::Ptr parseField();
-            ast::Obj::List parseFnParamters();
-            ast::Type::List parseFnResults();
-
-            // statement related
-            ast::Stmt::Ptr parseStmt();
-            ast::Stmt::List parseStmtList();
-            ast::Stmt::Ptr parseSimpleStmt();
-            ast::Stmt::Ptr parseIfStmt();
-            ast::Stmt::Ptr parseWhileStmt();
-            ast::Stmt::Ptr parseForStmt();
-            ast::Stmt::Ptr parseBlock();
-            ast::Stmt::Ptr parseVarDeclStmt();
-            ast::Stmt::Ptr parseReturnStmt();
-
-            //declaration related
-            ast::Decl::Ptr parseVarDecl();
-            ast::Decl::Ptr parseFuncDecl();
         };
     }
 }

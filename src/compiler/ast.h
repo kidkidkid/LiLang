@@ -22,7 +22,6 @@ namespace lilang
             kFn,
             kArray,
             kPointer,
-            kInvalid,
             // todo, data
         };
         class Obj;
@@ -52,11 +51,6 @@ namespace lilang
             virtual ~Node(){};
         };
 
-        //start symbol
-        class File : public Node
-        {
-        };
-
         class Decl : public Node
         {
         public:
@@ -80,7 +74,27 @@ namespace lilang
             Type::Ptr extract_type();
         };
 
-        // named identity
+        class File
+        {
+        public:
+            typedef std::shared_ptr<File> Ptr;
+
+            Decl::List declarations;
+            File() = default;
+            inline void AddDecl(Decl::Ptr d)
+            {
+                declarations.push_back(std::move(d));
+            }
+        };
+
+        enum class ObjKind
+        {
+            kVar,
+            kFunc,
+            kType,
+        };
+
+        // named identity, variable/functype/type
         class Obj
         {
         public:
@@ -97,6 +111,18 @@ namespace lilang
             Obj(Type::Ptr t, string_t n) : type(t), name(n) {}
         };
 
+        class Field
+        {
+        public:
+            typedef std::shared_ptr<Field> Ptr;
+            typedef std::vector<Ptr> List;
+
+            string_t var_name;
+            Expr::Ptr type;
+            Field() = default;
+            Field(string_t n, Expr::Ptr t) : var_name(n), type(t) {}
+        };
+
         //********************************************************************
         //expression related
         //********************************************************************
@@ -107,12 +133,12 @@ namespace lilang
             BadExpr() = default;
         };
 
-        class OperandName : public Expr
+        class Ident : public Expr
         {
         public:
             string_t name;
-            OperandName() = default;
-            OperandName(string_t n) : name(n) {}
+            Ident() = default;
+            Ident(string_t n) : name(n) {}
         };
 
         // Expr op Expr
@@ -146,15 +172,6 @@ namespace lilang
             BasicLiteral(Type::Ptr t, string_t v) : type(t), value(v) {}
         };
 
-        class FuncLit : public Expr
-        {
-        public:
-            Type::Ptr signature;
-            Stmt::Ptr block;
-            FuncLit() = default;
-            FuncLit(Type::Ptr fn, Stmt::Ptr b) : signature(fn), block(b) {}
-        };
-
         // (expr)
         class ParenExpr : public Expr
         {
@@ -174,16 +191,6 @@ namespace lilang
             CallExpr(Expr::Ptr f, Expr::List a) : expr(f), args(a) {}
         };
 
-        // type(expr)
-        class CastExpr : public Expr
-        {
-        public:
-            Type::Ptr type;
-            Expr::Ptr expr;
-            CastExpr() = default;
-            CastExpr(Type::Ptr t, Expr::Ptr e) : type(t), expr(e) {}
-        };
-
         // operand[expr]
         class IndexExpr : public Expr
         {
@@ -192,6 +199,40 @@ namespace lilang
             Expr::Ptr index;
             IndexExpr() = default;
             IndexExpr(Expr::Ptr o, Expr::Ptr i) : operand(o), index(i) {}
+        };
+
+        class StarExpr : public Expr
+        {
+        public:
+            Expr::Ptr expr;
+            StarExpr() = default;
+            StarExpr(Expr::Ptr e) : expr(e) {}
+        };
+
+        class ArrayType : public Expr
+        {
+        public:
+            Expr::Ptr expr;
+            ArrayType() = default;
+            ArrayType(Expr::Ptr e) : expr(e) {}
+        };
+
+        class FuncType : public Expr
+        {
+        public:
+            Field::List args;
+            Expr::List returns;
+            FuncType() = default;
+            FuncType(Field::List args, Expr::List rets) : args(args), returns(rets) {}
+        };
+
+        class FuncLit : public Expr
+        {
+        public:
+            Expr::Ptr type;
+            Stmt::Ptr body;
+            FuncLit() = default;
+            FuncLit(Expr::Ptr t, Stmt::Ptr b) : type(t), body(b) {}
         };
 
         //********************************************************************
@@ -203,12 +244,23 @@ namespace lilang
         class VarDecl : public Decl
         {
         public:
-            Obj::List names; // identifiers
-            Type::Ptr type;
+            std::vector<string_t> names;
+            Expr::Ptr type;
             Expr::List vals;
             VarDecl() = default;
-            VarDecl(Obj::List n, Expr::List v) : names(n), vals(v) {}
-            VarDecl(Obj::List n, Type::Ptr t) : names(n), type(t) {}
+            VarDecl(std::vector<string_t> n, Expr::Ptr t) : names(n), type(t) {}
+            VarDecl(std::vector<string_t> n, Expr::List vals) : names(n), vals(vals) {}
+        };
+
+        // fn name()()
+        class FuncDecl : public Decl
+        {
+        public:
+            string_t fn_name;
+            Expr::Ptr type;
+            Stmt::Ptr body;
+            FuncDecl() = default;
+            FuncDecl(string_t n, Expr::Ptr t, Stmt::Ptr b) : fn_name(n), type(t), body(b) {}
         };
 
         //********************************************************************

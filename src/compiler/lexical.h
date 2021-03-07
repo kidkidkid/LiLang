@@ -102,10 +102,11 @@ namespace lilang
             typedef std::vector<CodeError> List;
         };
 
-        struct CodeFile
+        struct LexicalParser
         {
             int _;
-            static CodeToken::List Parse(const string_t &, CodeError::List &);
+            static CodeToken::List ParseString(const string_t &, CodeError::List &);
+            static CodeToken::List ParseFile(const string_t &, CodeError::List &);
         };
 
     }
