@@ -17,6 +17,7 @@ syntax:
 semantic:
 	g++ -std=c++11 -O0\
 		./test/semantic_test.cpp ./src/compiler/syntax.cpp ./src/compiler/lexical.cpp ./src/compiler/ast.cpp \
+		./src/compiler/semantic.cpp \
 		-I./src/compiler \
 		-o semantic.out
 	./semantic.out

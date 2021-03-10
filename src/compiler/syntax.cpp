@@ -551,20 +551,7 @@ ast::Field::Ptr Parser::ParseField()
 // literal
 ast::Expr::Ptr Parser::ParseBasicLit()
 {
-    ast::Type::Ptr t;
-    if (cur_tok.type == CodeType::kNumber)
-    {
-        t = std::make_shared<ast::Type>(ast::TypeKind::kInt);
-    }
-    else if (cur_tok.type == CodeType::kFloat)
-    {
-        t = std::make_shared<ast::Type>(ast::TypeKind::kFloat);
-    }
-    else if (cur_tok.type == CodeType::kStringLiteral)
-    {
-        t = std::make_shared<ast::Type>(ast::TypeKind::kString);
-    }
-    auto lit = std::make_shared<ast::BasicLiteral>(t, cur_tok.value);
+    auto lit = std::make_shared<ast::BasicLiteral>(cur_tok.value);
     NextToken();
     return lit;
 }
@@ -623,7 +610,7 @@ ast::Stmt::Ptr Parser::ParseStmt()
     };
     ExpectError("statement");
     Exhaust(statement_follow); // if can not parse stmt, exhaust until ; OR }
-    return std::make_shared<ast::EmptyStmt>();
+    return std::make_shared<ast::BadStmt>();
 }
 
 ast::Stmt::List Parser::ParseStmtList()
@@ -673,7 +660,7 @@ ast::Stmt::Ptr Parser::ParseSimpleStmt()
     if (lhs.size() > 1)
     {
         ExpectError("one expression");
-        return std::make_shared<ast::EmptyStmt>();
+        return std::make_shared<ast::BadStmt>();
     }
     // todo, maybe add ++/-- or other features
     return std::make_shared<ast::ExprStmt>(lhs[0]); // expression statement
