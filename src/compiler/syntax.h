@@ -57,7 +57,7 @@ namespace lilang
             ast::Expr::Ptr ParseTypeName();
             ast::Expr::Ptr ParsePointerType();
             ast::Expr::Ptr ParseArrayType();
-            ast::Expr::Ptr ParseFuncType();
+            ast::FuncType::Ptr ParseFuncType();
             ast::Field::Ptr ParseField();
             ast::Field::List ParseFnParamters();
             ast::Expr::List ParseFnResults();
@@ -69,7 +69,7 @@ namespace lilang
             ast::Stmt::Ptr ParseIfStmt();
             ast::Stmt::Ptr ParseWhileStmt();
             ast::Stmt::Ptr ParseForStmt();
-            ast::Stmt::Ptr ParseBlock();
+            ast::Block::Ptr ParseBlock();
             ast::Stmt::Ptr ParseVarDeclStmt();
             ast::Stmt::Ptr ParseReturnStmt();
 

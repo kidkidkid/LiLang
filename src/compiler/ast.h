@@ -6,15 +6,96 @@
 #include "../listl.h"
 #include "./lexical.h"
 
-#define lilang_trace
+#define RepeatStringLit(N, S)   \
+    for (int i = 0; i < N; i++) \
+    {                           \
+        std::cout << S;         \
+    }
 
 namespace lilang
 {
     namespace ast
     {
-        // typedef
         using TokenPos = int;
         class Visitor;
+
+        //********************************************************************
+        // ast node attribute
+        //********************************************************************
+
+        class Type
+        {
+        public:
+            typedef std::shared_ptr<Type> Ptr;
+            typedef std::vector<Ptr> List;
+
+            enum class Kind
+            {
+                kInt,
+                kFloat,
+                kString,
+                kBool,
+                kFn,
+                kArray,
+                kPointer,
+                kTuple,
+                kInvalid,
+            };
+
+            Kind kind;
+            // pointer OR array
+            Ptr base;
+            // function
+            List params;
+            List returns;
+            // tuple
+            List vals;
+
+            Type() = default;
+            Type(Kind k) : kind(k) {}
+            Type(Kind k, Ptr b) : kind(k), base(b) {}
+            Type(Kind k, List args, List rets) : kind(k), params(args), returns(rets) {}
+            Type(Kind k, List vals) : kind(k), vals(vals) {}
+
+            static bool Match(const Ptr &, const Ptr &);
+            static bool Comparable(const Ptr &);
+            static string_t String(const Ptr &);
+        };
+
+        class Obj
+        {
+        public:
+            typedef std::shared_ptr<Obj> Ptr;
+            typedef std::vector<Ptr> List;
+
+            // Variable/IndexValue/IndirectPointer can be left value
+            enum class Kind
+            {
+                kVar,             // variable
+                kFunc,            // function lit
+                kType,            // purely type
+                kValue,           // computed value, including literal
+                kIndexValue,      // array index
+                kIndirectPointer, // *
+            };
+
+            Kind kind;
+            Type::Ptr type;
+
+            Obj() = default;
+            Obj(Kind k) : kind(k){}
+            Obj(Kind k, Type::Ptr t) : type(t), kind(k) {}
+
+            bool Addressable();
+            bool Assignable();
+            string_t String();
+            static Ptr InvalidInstance();
+        };
+
+        //********************************************************************
+        // ast node related
+        //********************************************************************
+
         class Node
         {
         public:
@@ -40,6 +121,8 @@ namespace lilang
         class Expr : public Node
         {
         public:
+            Obj::Ptr obj;
+
             typedef std::shared_ptr<Expr> Ptr;
             typedef std::vector<Ptr> List;
         };
@@ -122,8 +205,9 @@ namespace lilang
         {
         public:
             string_t value;
+            compiler::CodeType type;
             BasicLiteral() = default;
-            BasicLiteral(string_t v) : value(v) {}
+            BasicLiteral(string_t v, compiler::CodeType t) : value(v), type(t) {}
             void Accept(Visitor *v);
         };
 
@@ -144,6 +228,7 @@ namespace lilang
             Expr::Ptr expr;
             Expr::List args;
             CallExpr() = default;
+            CallExpr(Expr::Ptr f) : expr(f) {}
             CallExpr(Expr::Ptr f, Expr::List a) : expr(f), args(a) {}
             void Accept(Visitor *v);
         };
@@ -180,6 +265,8 @@ namespace lilang
         class FuncType : public Expr
         {
         public:
+            typedef std::shared_ptr<FuncType> Ptr;
+
             Field::List args;
             Expr::List returns;
             FuncType() = default;
@@ -187,13 +274,17 @@ namespace lilang
             void Accept(Visitor *v);
         };
 
+        class Block;
         class FuncLit : public Expr
         {
         public:
-            Expr::Ptr type;
-            Stmt::Ptr body;
+            typedef std::shared_ptr<FuncLit> Ptr;
+
+            string_t name;
+            FuncType::Ptr type;
+            std::shared_ptr<Block> body;
             FuncLit() = default;
-            FuncLit(Expr::Ptr t, Stmt::Ptr b) : type(t), body(b) {}
+            FuncLit(FuncType::Ptr t, std::shared_ptr<Block> b) : type(t), body(b) {}
             void Accept(Visitor *v);
         };
 
@@ -219,11 +310,9 @@ namespace lilang
         class FuncDecl : public Decl
         {
         public:
-            string_t fn_name;
-            Expr::Ptr type;
-            Stmt::Ptr body;
+            FuncLit::Ptr fn_lit;
             FuncDecl() = default;
-            FuncDecl(string_t n, Expr::Ptr t, Stmt::Ptr b) : fn_name(n), type(t), body(b) {}
+            FuncDecl(FuncLit::Ptr f) : fn_lit(f) {}
             void Accept(Visitor *v);
         };
 
@@ -286,6 +375,8 @@ namespace lilang
         class Block : public Stmt
         {
         public:
+            typedef std::shared_ptr<Block> Ptr;
+
             Stmt::List stmts;
             Block() = default;
             Block(Stmt::List stmts) : stmts(stmts) {}

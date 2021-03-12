@@ -47,7 +47,7 @@ namespace lilang
             kBitsOrAssign,    // |=
             kBitsXorAssign,   // ^=
             kAssign,          // =
-            kShortAssign,     // :=
+            // kShortAssign,     // :=
             kEqual,           // ==
             kNotEqual,        // !=
             kGreater,         // >

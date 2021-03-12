@@ -12,5 +12,7 @@ int main()
     Parser parser;
     auto root = parser.ParseFile(f);
     parser.PrintErrors();
-    ast::AnalyzeSemantically(root);
+    ast::SemanticVisitor semantic;
+    semantic.Analyze(root);
+    semantic.PrintErrors();
 }

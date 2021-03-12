@@ -235,17 +235,17 @@ namespace lilang
                             AddToken(1, CodeType::kAssign);
                         }
                         break;
-                    case ':':
-                        if (*(str + 1) == '=')
-                        {
-                            AddToken(2, CodeType::kShortAssign);
-                            str++;
-                        }
-                        else
-                        {
-                            AddError("unexcepted colon");
-                        }
-                        break;
+                    // case ':':
+                    //     if (*(str + 1) == '=')
+                    //     {
+                    //         AddToken(2, CodeType::kShortAssign);
+                    //         str++;
+                    //     }
+                    //     else
+                    //     {
+                    //         AddError("unexcepted colon");
+                    //     }
+                    //     break;
                     case '"':
                         NextState(ParseState::kInString);
                         token_begin++;
@@ -406,7 +406,7 @@ namespace lilang
                 case ParseState::kInFloat:
                     if (*str < '0' || *str > '9')
                     {
-                        AddToken(str - token_begin, CodeType::kNumber);
+                        AddToken(str - token_begin, CodeType::kFloat);
                         str--;
                     }
                     break;
@@ -618,8 +618,8 @@ namespace lilang
                 return "BITSXORASSIGN";
             case CodeType::kAssign:
                 return "ASSIGN";
-            case CodeType::kShortAssign:
-                return "SHORTASSIGN";
+            // case CodeType::kShortAssign:
+            //     return "SHORTASSIGN";
             case CodeType::kEqual:
                 return "EQ";
             case CodeType::kNotEqual:
@@ -712,7 +712,7 @@ namespace lilang
 
         void CodeToken::Print(CodeToken::List &list)
         {
-             for (auto err : list)
+            for (auto err : list)
             {
                 std::cout << "(" << err.row_number << ", " << err.column_number << ") "
                           << err.value << std::endl;

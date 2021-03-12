@@ -3,11 +3,7 @@
 #include <iomanip>
 #include "./syntax.h"
 
-#define RepeatStringLit(N, S)   \
-    for (int i = 0; i < N; i++) \
-    {                           \
-        std::cout << S;         \
-    }
+#define lilang_syntax_trace
 #define trace(S) Trace _t(S, this)
 
 using namespace lilang::compiler;
@@ -34,7 +30,7 @@ Parser::TokenMap Parser::declaration_start = {
 
 void Parser::NextToken()
 {
-#ifdef lilang_trace
+#ifdef lilang_syntax_trace
     auto tok = tokens[cur_pos];
     std::cout << std::setw(3) << tok.row_number << ":" << std::setw(3) << tok.column_number << ":";
     RepeatStringLit(Trace::trace_ident * 2, ".");
@@ -182,7 +178,7 @@ ast::File::Ptr Parser::Parse()
 
 ast::Expr::Ptr Parser::ParseExpression()
 {
-#ifdef lilang_trace
+#ifdef lilang_syntax_trace
     trace("Expression");
 #endif
     return ParseBinaryExpression(1);
@@ -191,7 +187,7 @@ ast::Expr::Ptr Parser::ParseExpression()
 // expression{, expression}
 ast::Expr::List Parser::ParseExprList()
 {
-#ifdef lilang_trace
+#ifdef lilang_syntax_trace
     trace("ExpressionList");
 #endif
     ast::Expr::List list;
@@ -210,7 +206,7 @@ ast::Expr::List Parser::ParseExprList()
 // The power of Recursive!
 ast::Expr::Ptr Parser::ParseBinaryExpression(int before_prec)
 {
-#ifdef lilang_trace
+#ifdef lilang_syntax_trace
     trace("BinaryExpr");
 #endif
     auto x = ParseUnaryExpression();
@@ -236,7 +232,7 @@ ast::Expr::Ptr Parser::ParseBinaryExpression(int before_prec)
 
 ast::Expr::Ptr Parser::ParseUnaryExpression()
 {
-#ifdef lilang_trace
+#ifdef lilang_syntax_trace
     trace("UnaryExpr");
 #endif
     switch (cur_tok.type)
@@ -245,7 +241,6 @@ ast::Expr::Ptr Parser::ParseUnaryExpression()
     case CodeType::kSub:
     case CodeType::kBitsAnd:
     case CodeType::kBitsXor:
-    case CodeType::kBitsOr:
     case CodeType::kLogicNot:
     {
         auto t = cur_tok.type;
@@ -263,7 +258,7 @@ ast::Expr::Ptr Parser::ParseUnaryExpression()
 // operand(arg1, arg2, arg3)
 ast::Expr::Ptr Parser::ParsePrimaryExpression()
 {
-#ifdef lilang_trace
+#ifdef lilang_syntax_trace
     trace("PrimaryExpr");
 #endif
     auto p = ParseOperand();
@@ -287,7 +282,7 @@ ast::Expr::Ptr Parser::ParsePrimaryExpression()
 
 ast::Expr::Ptr Parser::ParseOperand()
 {
-#ifdef lilang_trace
+#ifdef lilang_syntax_trace
     trace("Operand");
 #endif
     switch (cur_tok.type)
@@ -343,11 +338,16 @@ ast::Expr::Ptr Parser::ParseIdent()
 
 ast::Expr::Ptr Parser::ParseCall(ast::Expr::Ptr e)
 {
-#ifdef lilang_trace
+#ifdef lilang_syntax_trace
     trace("Call");
 #endif
     ast::Expr::List arg_list;
     Expect(CodeType::kLeftParenthese);
+    if (cur_tok.type == CodeType::kRightParenthese)
+    {
+        NextToken();
+        return std::make_shared<ast::CallExpr>(e);
+    }
     while (true)
     {
         arg_list.push_back(ParseExpression());
@@ -367,7 +367,7 @@ ast::Expr::Ptr Parser::ParseCall(ast::Expr::Ptr e)
 
 ast::Expr::Ptr Parser::ParseIndex(ast::Expr::Ptr o)
 {
-#ifdef lilang_trace
+#ifdef lilang_syntax_trace
     trace("Index");
 #endif
     Expect(CodeType::kLeftBracket);
@@ -409,7 +409,7 @@ ast::Expr::Ptr Parser::TryParseType()
 // identifier typename
 ast::Expr::Ptr Parser::ParseTypeName()
 {
-#ifdef lilang_trace
+#ifdef lilang_syntax_trace
     trace("TypeName");
 #endif
     auto t = std::make_shared<ast::Ident>(cur_tok.value);
@@ -420,7 +420,7 @@ ast::Expr::Ptr Parser::ParseTypeName()
 // ****int
 ast::Expr::Ptr Parser::ParsePointerType()
 {
-#ifdef lilang_trace
+#ifdef lilang_syntax_trace
     trace("PointerExpr");
 #endif
     Expect(CodeType::kMultiply);
@@ -431,7 +431,7 @@ ast::Expr::Ptr Parser::ParsePointerType()
 // [][][]*int
 ast::Expr::Ptr Parser::ParseArrayType()
 {
-#ifdef lilang_trace
+#ifdef lilang_syntax_trace
     trace("ArrayExpr");
 #endif
     Expect(CodeType::kLeftBracket);
@@ -442,7 +442,7 @@ ast::Expr::Ptr Parser::ParseArrayType()
 // fn(int, int)()
 ast::FuncType::Ptr Parser::ParseFuncType()
 {
-#ifdef lilang_trace
+#ifdef lilang_syntax_trace
     trace("FuncType");
 #endif
     Expect(CodeType::kFn);
@@ -453,7 +453,7 @@ ast::FuncType::Ptr Parser::ParseFuncType()
 
 ast::Expr::Ptr Parser::ParseFuncLit()
 {
-#ifdef lilang_trace
+#ifdef lilang_syntax_trace
     trace("FuncLit");
 #endif
     Expect(CodeType::kFn);
@@ -466,7 +466,7 @@ ast::Expr::Ptr Parser::ParseFuncLit()
 // (int, float)
 ast::Field::List Parser::ParseFnParamters()
 {
-#ifdef lilang_trace
+#ifdef lilang_syntax_trace
     trace("Parametes");
 #endif
     ast::Field::List params;
@@ -496,7 +496,7 @@ ast::Field::List Parser::ParseFnParamters()
 // (int, int)
 ast::Expr::List Parser::ParseFnResults()
 {
-#ifdef lilang_trace
+#ifdef lilang_syntax_trace
     trace("Results");
 #endif
     ast::Expr::List returns;
@@ -551,7 +551,7 @@ ast::Field::Ptr Parser::ParseField()
 // literal
 ast::Expr::Ptr Parser::ParseBasicLit()
 {
-    auto lit = std::make_shared<ast::BasicLiteral>(cur_tok.value);
+    auto lit = std::make_shared<ast::BasicLiteral>(cur_tok.value, cur_tok.type);
     NextToken();
     return lit;
 }
@@ -563,7 +563,7 @@ ast::Expr::Ptr Parser::ParseBasicLit()
 // semicolon is expect in each statement, some statements dont end with semicolon
 ast::Stmt::Ptr Parser::ParseStmt()
 {
-#ifdef lilang_trace
+#ifdef lilang_syntax_trace
     trace("Statement");
 #endif
     switch (cur_tok.type)
@@ -615,7 +615,7 @@ ast::Stmt::Ptr Parser::ParseStmt()
 
 ast::Stmt::List Parser::ParseStmtList()
 {
-#ifdef lilang_trace
+#ifdef lilang_syntax_trace
     trace("StatementList");
 #endif
     ast::Stmt::List list;
@@ -634,7 +634,7 @@ ast::Stmt::List Parser::ParseStmtList()
 // assign
 ast::Stmt::Ptr Parser::ParseSimpleStmt()
 {
-#ifdef lilang_trace
+#ifdef lilang_syntax_trace
     trace("SimpleStatement");
 #endif
     auto lhs = ParseExprList();
@@ -648,12 +648,12 @@ ast::Stmt::Ptr Parser::ParseSimpleStmt()
     case CodeType::kBitsOrAssign:
     case CodeType::kBitsAndAssign:
     case CodeType::kBitsXorAssign:
-    case CodeType::kShortAssign:
-    {
-        NextToken();
-        auto rhs = ParseExprList();
-        return std::make_shared<ast::AssignStmt>(lhs, rhs);
-    }
+        //case CodeType::kShortAssign:
+        {
+            NextToken();
+            auto rhs = ParseExprList();
+            return std::make_shared<ast::AssignStmt>(lhs, rhs);
+        }
     default:
         break;
     }
@@ -668,7 +668,7 @@ ast::Stmt::Ptr Parser::ParseSimpleStmt()
 
 ast::Stmt::Ptr Parser::ParseIfStmt()
 {
-#ifdef lilang_trace
+#ifdef lilang_syntax_trace
     trace("IfStatement");
 #endif
     Expect(CodeType::kIf);
@@ -694,7 +694,7 @@ ast::Stmt::Ptr Parser::ParseIfStmt()
 
 ast::Stmt::Ptr Parser::ParseWhileStmt()
 {
-#ifdef lilang_trace
+#ifdef lilang_syntax_trace
     trace("WhileStatement");
 #endif
     Expect(CodeType::kWhile);
@@ -707,7 +707,7 @@ ast::Stmt::Ptr Parser::ParseWhileStmt()
 
 ast::Stmt::Ptr Parser::ParseForStmt()
 {
-#ifdef lilang_trace
+#ifdef lilang_syntax_trace
     trace("IfStatement");
 #endif
     Expect(CodeType::kFor);
@@ -733,7 +733,7 @@ ast::Stmt::Ptr Parser::ParseForStmt()
 
 ast::Stmt::Ptr Parser::ParseReturnStmt()
 {
-#ifdef lilang_trace
+#ifdef lilang_syntax_trace
     trace("ReturnStatement");
 #endif
     Expect(CodeType::kReturn);
@@ -751,7 +751,7 @@ ast::Stmt::Ptr Parser::ParseVarDeclStmt()
 
 ast::Block::Ptr Parser::ParseBlock()
 {
-#ifdef lilang_trace
+#ifdef lilang_syntax_trace
     trace("Block");
 #endif
     Expect(CodeType::kLeftBrace);
@@ -765,7 +765,7 @@ ast::Block::Ptr Parser::ParseBlock()
 //********************************************************************
 ast::Decl::Ptr Parser::ParseVarDecl()
 {
-#ifdef lilang_trace
+#ifdef lilang_syntax_trace
     trace("VarDecl");
 #endif
     Expect(CodeType::kLet);
@@ -797,7 +797,7 @@ ast::Decl::Ptr Parser::ParseVarDecl()
 
 ast::Decl::Ptr Parser::ParseFuncDecl()
 {
-#ifdef lilang_trace
+#ifdef lilang_syntax_trace
     trace("FuncDecl");
 #endif
     Expect(CodeType::kFn);
@@ -807,5 +807,9 @@ ast::Decl::Ptr Parser::ParseFuncDecl()
     auto rets = ParseFnResults();
     auto type = std::make_shared<ast::FuncType>(args, rets);
     auto body = ParseBlock();
-    return std::make_shared<ast::FuncDecl>(name, type, body);
+    auto lit = std::make_shared<ast::FuncLit>(type, body);
+    lit->name = name;
+    return std::make_shared<ast::FuncDecl>(lit);
 }
+
+#undef lilang_syntax_trace

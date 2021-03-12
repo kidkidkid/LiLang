@@ -5,19 +5,16 @@ fn test() {
 
 }
 
+fn retTwo()(int, int)
+{
+
+}
 
 fn test_two(int, int x, int y) (int, float)
 {
-    let z, y, x int;
-    let x, y = 10, (*int)(&z);
-    test := fn(fn(fn()(int))(int, int)) int
-    {
-        return 0xfffff + 0000;
-    };
-    count := 1;
-    for(m := 10; m >= 10 || m <= 100;m += 1) {
-        count += test(10);
-    }
-    return count, 1.0;
+    let m, n = retTwo();
+    let a, b = 10.0, 10;
+    let s = "zzz" + "sfd";
+    //let s = 1+1;
 }
 
