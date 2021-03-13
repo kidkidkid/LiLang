@@ -60,6 +60,7 @@ namespace lilang
             static bool Match(const Ptr &, const Ptr &);
             static bool Comparable(const Ptr &);
             static string_t String(const Ptr &);
+            static bool CanCast(const Ptr &, const Ptr &);
         };
 
         class Obj
@@ -83,7 +84,6 @@ namespace lilang
             Type::Ptr type;
 
             Obj() = default;
-            Obj(Kind k) : kind(k){}
             Obj(Kind k, Type::Ptr t) : type(t), kind(k) {}
 
             bool Addressable();
@@ -100,6 +100,7 @@ namespace lilang
         {
         public:
             typedef std::shared_ptr<Node> Ptr;
+            typedef std::vector<Ptr> List;
 
             virtual void Accept(Visitor *v) = 0;
         };

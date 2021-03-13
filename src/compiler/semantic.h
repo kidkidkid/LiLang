@@ -62,6 +62,7 @@ namespace lilang
             void EnterScope();
             void LeaveScope();
             void EmitError(const string_t &);
+            void AnalyzeExprList(Expr::List &);
 
             class Error
             {

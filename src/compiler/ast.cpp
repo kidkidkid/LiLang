@@ -12,6 +12,11 @@ namespace lilang
             {
                 return false;
             }
+            // skip invalid, errors may have beed emitted before
+            // if (t1->kind == Type::Kind::kInvalid || t2->kind == Type::Kind::kInvalid)
+            // {
+            //     return true;
+            // }
             if (t1->kind != t2->kind)
             {
                 return false;
@@ -63,6 +68,25 @@ namespace lilang
             if (t->kind == Kind::kInt ||
                 t->kind == Kind::kFloat ||
                 t->kind == Kind::kBool)
+            {
+                return true;
+            }
+            return false;
+        }
+
+        bool Type::CanCast(const Ptr &from, const Ptr &to)
+        {
+            if (Match(from, to))
+            {
+                return true;
+            }
+            // int -> float
+            if (from->kind == Type::Kind::kInt && to->kind == Type::Kind::kFloat)
+            {
+                return true;
+            }
+            // float -> int
+            if (from->kind == Type::Kind::kFloat && to->kind == Type::Kind::kInt)
             {
                 return true;
             }

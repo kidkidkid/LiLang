@@ -12,9 +12,18 @@ fn retTwo()(int, int)
 
 fn test_two(int, int x, int y) (int, float)
 {
-    let m, n = retTwo();
-    let a, b = 10.0, 10;
-    let s = "zzz" + "sfd";
-    //let s = 1+1;
+    let m, n = retTwo(); //function call
+    let a, b = 10.0, 10; // variable declaration
+    let s []*[]int; // array
+    let ss = s[10];
+    sss = 10; // not declared;
+    let xx = &a; // reference
+    *xx = 10; // deference
+    let ff = fn(int x) int {
+
+    };
+    let mm = fn(int x, int y) int  {
+        return x * y;
+    }(10, 10);
 }
 

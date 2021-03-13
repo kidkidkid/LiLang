@@ -14,5 +14,4 @@ int main()
     parser.PrintErrors();
     ast::SemanticVisitor semantic;
     semantic.Analyze(root);
-    semantic.PrintErrors();
 }

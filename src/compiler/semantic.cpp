@@ -42,6 +42,7 @@ namespace lilang
                 {
                     return val;
                 }
+                s = s->parent;
             }
             return nullptr;
         }
@@ -84,12 +85,23 @@ namespace lilang
 
         void SemanticVisitor::EmitError(const string_t &msg)
         {
+            RepeatStringLit(Scope::Depth * 4, ".");
+            RepeatStringLit(1, msg);
+            RepeatStringLit(1, "\n");
             errors.emplace_back(msg);
         }
 
         void SemanticVisitor::Analyze(Node::Ptr node)
         {
             node->Accept(this);
+        }
+
+        void SemanticVisitor::AnalyzeExprList(Expr::List &list)
+        {
+            for (auto node : list)
+            {
+                node->Accept(this);
+            }
         }
 
         void SemanticVisitor::PrintErrors()
@@ -112,7 +124,8 @@ namespace lilang
         // expression related
         //********************************************************************
 
-        // should be declared before in this condition
+        // should be declared
+        // may be wrong if A.B is a valid grammer
         void SemanticVisitor::Visit(Ident *ident)
         {
             auto o = scope->FindSymbol(ident->name);
@@ -253,7 +266,7 @@ namespace lilang
                 }
                 else
                 {
-                    auto t = std::make_shared<Type>(Type::Kind::kPointer);
+                    auto t = std::make_shared<Type>(Type::Kind::kPointer, expr->obj->type);
                     unary_expr->obj = std::make_shared<Obj>(Obj::Kind::kValue, t);
                 }
             }
@@ -265,7 +278,7 @@ namespace lilang
 
         void SemanticVisitor::Visit(BasicLiteral *lit)
         {
-            auto obj = std::make_shared<Obj>(Obj::Kind::kValue);
+            auto obj = std::make_shared<Obj>(Obj::Kind::kValue, nullptr);
             switch (lit->type)
             {
             case compiler::CodeType::kNumber:
@@ -278,7 +291,7 @@ namespace lilang
                 obj->type = std::make_shared<Type>(Type::Kind::kString);
                 break;
             default:
-                break;
+                exit(-1);
             }
             lit->obj = obj;
         }
@@ -294,7 +307,6 @@ namespace lilang
             call_expr->obj = Obj::InvalidInstance();
             auto expr = call_expr->expr;
             Analyze(expr);
-            Type::List args;
             // type cast
             if (expr->obj->kind == Obj::Kind::kType)
             {
@@ -303,7 +315,16 @@ namespace lilang
                     EmitError("type cast expect one operand");
                     return;
                 }
-                // todo, type cast
+                auto operand = call_expr->args[0];
+                Analyze(operand);
+                if (!Type::CanCast(operand->obj->type, expr->obj->type))
+                {
+                    stringstream_t ss;
+                    ss << "Cannot cast from " << Type::String(operand->obj->type)
+                       << " to " << Type::String(expr->obj->type);
+                    EmitError(ss.str());
+                    return;
+                }
                 call_expr->obj = std::make_shared<Obj>(Obj::Kind::kValue, expr->obj->type);
                 return;
             }
@@ -311,14 +332,14 @@ namespace lilang
             else if (expr->obj->kind == Obj::Kind::kVar && expr->obj->type->kind == Type::Kind::kFn ||
                      expr->obj->kind == Obj::Kind::kFunc)
             {
-                args = expr->obj->type->params;
+                // skip
             }
             else
             {
-                EmitError("type or function expected");
+                EmitError("type or function expected, found type " + Type::String(expr->obj->type));
                 return;
             }
-            // function call
+            auto args = expr->obj->type->params;
             if (args.size() != call_expr->args.size())
             {
                 EmitError("call arguments number not equals to that of function arguments");
@@ -330,7 +351,10 @@ namespace lilang
                 Analyze(call_arg);
                 if (!Type::Match(call_arg->obj->type, args[i]))
                 {
-                    EmitError("function argument type is not equal to that of passed");
+                    stringstream_t ss;
+                    ss << "function argument expects types " << Type::String(args[i])
+                       << " passed type " << Type::String(call_arg->obj->type);
+                    EmitError(ss.str());
                     return;
                 }
             }
@@ -340,6 +364,7 @@ namespace lilang
 
         void SemanticVisitor::Visit(IndexExpr *index_expr)
         {
+            index_expr->obj = Obj::InvalidInstance();
             auto operand = index_expr->operand;
             auto index = index_expr->index;
             Analyze(operand);
@@ -347,12 +372,12 @@ namespace lilang
             if (operand->obj->type->kind != Type::Kind::kArray)
             {
                 EmitError("index operand must be array-type");
-                index_expr->obj = Obj::InvalidInstance();
+                return;
             }
             if (index->obj->type->kind != Type::Kind::kInt)
             {
                 EmitError("array index must be a number");
-                index_expr->obj = Obj::InvalidInstance();
+                return;
             }
             index_expr->obj = std::make_shared<Obj>(Obj::Kind::kIndexValue, operand->obj->type->base);
         }
@@ -555,9 +580,81 @@ namespace lilang
         void SemanticVisitor::Visit(ForStmt *)
         {
         }
-        void SemanticVisitor::Visit(AssignStmt *)
+
+        void SemanticVisitor::Visit(AssignStmt *assign_stmt)
         {
+            auto lhs = assign_stmt->lhs;
+            auto rhs = assign_stmt->rhs;
+            AnalyzeExprList(lhs);
+            AnalyzeExprList(rhs);
+            if (lhs.size() != rhs.size())
+            {
+                // let x, y, z = func()
+                if (rhs.size() == 1 &&
+                    rhs[0]->obj->type->kind == Type::Kind::kTuple &&
+                    rhs[0]->obj->type->vals.size() == lhs.size())
+                {
+                    for (int i = 0; i < lhs.size(); i++)
+                    {
+                        auto left_type = lhs[i]->obj->type;
+                        auto right_type = rhs[0]->obj->type->vals[i];
+                        if (!Type::Match(left_type, right_type))
+                        {
+                            stringstream_t ss;
+                            ss << "Cannot assign type " << Type::String(right_type)
+                               << " to type " << Type::String(left_type);
+                            EmitError(ss.str());
+                            return;
+                        }
+                    }
+                    return;
+                }
+                else
+                {
+                    EmitError("the number of right side mismatch the left side");
+                    return;
+                }
+            }
+            else
+            {
+                for (int i = 0; i < lhs.size(); i++)
+                {
+                    auto left_type = lhs[i]->obj->type;
+                    auto right_type = rhs[i]->obj->type;
+                    if (right_type->kind == Type::Kind::kTuple && right_type->vals.size() != 1)
+                    {
+                        stringstream_t ss;
+                        ss << "Cannot assign multivalue " << Type::String(right_type)
+                           << " to single type " << Type::String(left_type);
+                        EmitError(ss.str());
+                        return;
+                    }
+                    else if (right_type->kind == Type::Kind::kTuple)
+                    {
+                        if (!Type::Match(left_type, right_type->vals[0]))
+                        {
+                            stringstream_t ss;
+                            ss << "Cannot assign type " << Type::String(right_type->vals[0])
+                               << " to type " << Type::String(left_type);
+                            EmitError(ss.str());
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        if (!Type::Match(left_type, right_type))
+                        {
+                            stringstream_t ss;
+                            ss << "Cannot assign type " << Type::String(right_type)
+                               << " to type " << Type::String(left_type);
+                            EmitError(ss.str());
+                            return;
+                        }
+                    }
+                }
+            }
         }
+
         void SemanticVisitor::Visit(DeclStmt *decl_stmt)
         {
             Analyze(decl_stmt->decl);
@@ -568,9 +665,13 @@ namespace lilang
         void SemanticVisitor::Visit(Block *)
         {
         }
-        void SemanticVisitor::Visit(ExprStmt *)
+
+        void SemanticVisitor::Visit(ExprStmt *expr_stmt)
         {
+            auto expr = expr_stmt->expr;
+            Analyze(expr);
         }
+
         void SemanticVisitor::Visit(EmptyStmt *)
         {
         }
