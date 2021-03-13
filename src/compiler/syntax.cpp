@@ -600,6 +600,7 @@ ast::Stmt::Ptr Parser::ParseStmt()
     case CodeType::kNumber:
     case CodeType::kFloat:
     case CodeType::kLeftParenthese:
+    case CodeType::kMultiply:
     {
         auto s = ParseSimpleStmt();
         Expect(CodeType::kSemiColon);

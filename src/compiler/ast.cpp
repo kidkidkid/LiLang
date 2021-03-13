@@ -6,6 +6,7 @@ namespace lilang
     namespace ast
     {
 
+        // absolutely same
         bool Type::Match(const Type::Ptr &t1, const Type::Ptr &t2)
         {
             if (t1 == nullptr || t2 == nullptr)
@@ -74,7 +75,7 @@ namespace lilang
             return false;
         }
 
-        bool Type::CanCast(const Ptr &from, const Ptr &to)
+        bool Type::CouldAssign(const Ptr &from, const Ptr &to)
         {
             if (Match(from, to))
             {

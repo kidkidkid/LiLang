@@ -104,6 +104,14 @@ namespace lilang
             }
         }
 
+        void SemanticVisitor::AnalyzeStmtList(Stmt::List &list)
+        {
+            for (auto node : list)
+            {
+                node->Accept(this);
+            }
+        }
+
         void SemanticVisitor::PrintErrors()
         {
             for (auto err : errors)
@@ -169,7 +177,7 @@ namespace lilang
             case compiler::CodeType::kNotGreater:
             case compiler::CodeType::kNotLess:
             {
-                if (Type::Match(lhs->obj->type, rhs->obj->type) && Type::Comparable(lhs->obj->type))
+                if (Type::CouldAssign(lhs->obj->type, rhs->obj->type) && Type::Comparable(lhs->obj->type))
                 {
                     auto t = std::make_shared<Type>(Type::Kind::kBool);
                     binary_expr->obj = std::make_shared<Obj>(Obj::Kind::kValue, t);
@@ -307,6 +315,7 @@ namespace lilang
             call_expr->obj = Obj::InvalidInstance();
             auto expr = call_expr->expr;
             Analyze(expr);
+            AnalyzeExprList(call_expr->args);
             // type cast
             if (expr->obj->kind == Obj::Kind::kType)
             {
@@ -316,8 +325,7 @@ namespace lilang
                     return;
                 }
                 auto operand = call_expr->args[0];
-                Analyze(operand);
-                if (!Type::CanCast(operand->obj->type, expr->obj->type))
+                if (!Type::CouldAssign(operand->obj->type, expr->obj->type))
                 {
                     stringstream_t ss;
                     ss << "Cannot cast from " << Type::String(operand->obj->type)
@@ -342,23 +350,58 @@ namespace lilang
             auto args = expr->obj->type->params;
             if (args.size() != call_expr->args.size())
             {
-                EmitError("call arguments number not equals to that of function arguments");
-                return;
-            }
-            for (int i = 0; i < args.size(); i++)
-            {
-                auto call_arg = call_expr->args[i];
-                Analyze(call_arg);
-                if (!Type::Match(call_arg->obj->type, args[i]))
+                auto call_args = call_expr->args;
+                if (call_args.size() == 1 &&
+                    call_args[0]->obj->type->kind == Type::Kind::kTuple &&
+                    call_args[0]->obj->type->vals.size() == args.size())
                 {
-                    stringstream_t ss;
-                    ss << "function argument expects types " << Type::String(args[i])
-                       << " passed type " << Type::String(call_arg->obj->type);
-                    EmitError(ss.str());
+                    if (args.size() == 0) {
+                        EmitError("function returns nothing, cannot used as a value");
+                        return;
+                    }
+                    for (int i = 0; i < args.size(); i++)
+                    {
+                        if (!Type::CouldAssign(call_args[0]->obj->type->vals[i], args[i]))
+                        {
+                            stringstream_t ss;
+                            ss << "Cannot pass type " << Type::String(call_args[0]->obj->type->vals[i])
+                               << " to type " << Type::String(args[i]);
+                            EmitError(ss.str());
+                            return;
+                        }
+                    }
+                }
+                else
+                {
+                    EmitError("call arguments number not equals to that of function arguments");
                     return;
                 }
             }
-            auto t = std::make_shared<Type>(Type::Kind::kTuple, expr->obj->type->returns);
+            else
+            {
+                for (int i = 0; i < args.size(); i++)
+                {
+                    auto call_arg = call_expr->args[i];
+                    if (!Type::CouldAssign(call_arg->obj->type, args[i]))
+                    {
+                        stringstream_t ss;
+                        ss << "function argument expects types " << Type::String(args[i])
+                           << " passed type " << Type::String(call_arg->obj->type);
+                        EmitError(ss.str());
+                        return;
+                    }
+                }
+            }
+            // function returns a tuple
+            Type::Ptr t;
+            if (expr->obj->type->returns.size() == 1)
+            {
+                t = expr->obj->type->returns[0];
+            }
+            else
+            {
+                t = std::make_shared<Type>(Type::Kind::kTuple, expr->obj->type->returns);
+            }
             call_expr->obj = std::make_shared<Obj>(Obj::Kind::kValue, t);
         }
 
@@ -478,10 +521,7 @@ namespace lilang
                     }
                 }
             }
-            for (auto stmt : lit->body->stmts)
-            {
-                Analyze(stmt);
-            }
+            AnalyzeStmtList(lit->body->stmts);
             LeaveScope();
         }
 
@@ -510,10 +550,7 @@ namespace lilang
             }
             else
             {
-                for (auto val : decl->vals)
-                {
-                    Analyze(val);
-                }
+                AnalyzeExprList(decl->vals);
                 if (decl->names.size() != decl->vals.size())
                 {
                     // let x, y, z = func()
@@ -598,7 +635,7 @@ namespace lilang
                     {
                         auto left_type = lhs[i]->obj->type;
                         auto right_type = rhs[0]->obj->type->vals[i];
-                        if (!Type::Match(left_type, right_type))
+                        if (!Type::CouldAssign(right_type, left_type))
                         {
                             stringstream_t ss;
                             ss << "Cannot assign type " << Type::String(right_type)
@@ -621,35 +658,13 @@ namespace lilang
                 {
                     auto left_type = lhs[i]->obj->type;
                     auto right_type = rhs[i]->obj->type;
-                    if (right_type->kind == Type::Kind::kTuple && right_type->vals.size() != 1)
+                    if (!Type::CouldAssign(right_type, left_type))
                     {
                         stringstream_t ss;
-                        ss << "Cannot assign multivalue " << Type::String(right_type)
-                           << " to single type " << Type::String(left_type);
+                        ss << "Cannot assign type " << Type::String(right_type)
+                           << " to type " << Type::String(left_type);
                         EmitError(ss.str());
                         return;
-                    }
-                    else if (right_type->kind == Type::Kind::kTuple)
-                    {
-                        if (!Type::Match(left_type, right_type->vals[0]))
-                        {
-                            stringstream_t ss;
-                            ss << "Cannot assign type " << Type::String(right_type->vals[0])
-                               << " to type " << Type::String(left_type);
-                            EmitError(ss.str());
-                            return;
-                        }
-                    }
-                    else
-                    {
-                        if (!Type::Match(left_type, right_type))
-                        {
-                            stringstream_t ss;
-                            ss << "Cannot assign type " << Type::String(right_type)
-                               << " to type " << Type::String(left_type);
-                            EmitError(ss.str());
-                            return;
-                        }
                     }
                 }
             }
@@ -659,11 +674,16 @@ namespace lilang
         {
             Analyze(decl_stmt->decl);
         }
+
         void SemanticVisitor::Visit(RetStmt *)
         {
         }
-        void SemanticVisitor::Visit(Block *)
+
+        void SemanticVisitor::Visit(Block *block)
         {
+            EnterScope();
+            AnalyzeStmtList(block->stmts);
+            LeaveScope();
         }
 
         void SemanticVisitor::Visit(ExprStmt *expr_stmt)

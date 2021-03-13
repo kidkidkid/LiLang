@@ -60,7 +60,7 @@ namespace lilang
             static bool Match(const Ptr &, const Ptr &);
             static bool Comparable(const Ptr &);
             static string_t String(const Ptr &);
-            static bool CanCast(const Ptr &, const Ptr &);
+            static bool CouldAssign(const Ptr &, const Ptr &);
         };
 
         class Obj
@@ -321,6 +321,17 @@ namespace lilang
         // statement related
         //********************************************************************
 
+        class Block : public Stmt
+        {
+        public:
+            typedef std::shared_ptr<Block> Ptr;
+
+            Stmt::List stmts;
+            Block() = default;
+            Block(Stmt::List stmts) : stmts(stmts) {}
+            void Accept(Visitor *v);
+        };
+
         class BadStmt : public Stmt
         {
         public:
@@ -357,9 +368,9 @@ namespace lilang
             Stmt::Ptr init;
             Expr::Ptr condition;
             Stmt::Ptr post;
-            Stmt::Ptr block;
+            Block::Ptr block;
             ForStmt() = default;
-            ForStmt(Stmt::Ptr i, Expr::Ptr c, Stmt::Ptr p, Stmt::Ptr b)
+            ForStmt(Stmt::Ptr i, Expr::Ptr c, Stmt::Ptr p, Block::Ptr b)
                 : init(i), condition(c), post(p), block(b) {}
             void Accept(Visitor *v);
         };
@@ -370,17 +381,6 @@ namespace lilang
             Expr::List vals;
             RetStmt() = default;
             RetStmt(Expr::List v) : vals(v) {}
-            void Accept(Visitor *v);
-        };
-
-        class Block : public Stmt
-        {
-        public:
-            typedef std::shared_ptr<Block> Ptr;
-
-            Stmt::List stmts;
-            Block() = default;
-            Block(Stmt::List stmts) : stmts(stmts) {}
             void Accept(Visitor *v);
         };
 
