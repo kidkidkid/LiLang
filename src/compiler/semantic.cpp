@@ -64,9 +64,11 @@ namespace lilang
             auto type_int = std::make_shared<Type>(Type::Kind::kInt);
             auto type_float = std::make_shared<Type>(Type::Kind::kFloat);
             auto type_string = std::make_shared<Type>(Type::Kind::kString);
+            auto type_bool = std::make_shared<Type>(Type::Kind::kBool);
             scope->AddSymbol("int", std::make_shared<Obj>(Obj::Kind::kType, type_int));
             scope->AddSymbol("float", std::make_shared<Obj>(Obj::Kind::kType, type_float));
             scope->AddSymbol("string", std::make_shared<Obj>(Obj::Kind::kType, type_string));
+            scope->AddSymbol("bool", std::make_shared<Obj>(Obj::Kind::kType, type_bool));
         }
 
         void SemanticVisitor::EnterScope()
@@ -93,6 +95,10 @@ namespace lilang
 
         void SemanticVisitor::Analyze(Node::Ptr node)
         {
+            if (node == nullptr)
+            {
+                return;
+            }
             node->Accept(this);
         }
 
@@ -117,6 +123,55 @@ namespace lilang
             for (auto err : errors)
             {
                 std::cout << err.msg << std::endl;
+            }
+        }
+
+        void SemanticVisitor::Assign(Type::List &lhs, Expr::List &rhs)
+        {
+            if (lhs.size() != rhs.size())
+            {
+                // let x, y, z = func()
+                if (rhs.size() == 1 &&
+                    rhs[0]->obj->type->kind == Type::Kind::kTuple &&
+                    rhs[0]->obj->type->vals.size() == lhs.size())
+                {
+                    for (int i = 0; i < lhs.size(); i++)
+                    {
+
+                        auto left_type = lhs[i];
+                        auto right_type = rhs[0]->obj->type->vals[i];
+                        if (!Type::CouldAssign(right_type, left_type))
+                        {
+                            stringstream_t ss;
+                            ss << "Cannot assign type " << Type::String(right_type)
+                               << " to type " << Type::String(left_type);
+                            EmitError(ss.str());
+                            return;
+                        }
+                    }
+                    return;
+                }
+                else
+                {
+                    EmitError("the number of right side mismatch the left side");
+                    return;
+                }
+            }
+            else
+            {
+                for (int i = 0; i < lhs.size(); i++)
+                {
+                    auto left_type = lhs[i];
+                    auto right_type = rhs[i]->obj->type;
+                    if (!Type::CouldAssign(right_type, left_type))
+                    {
+                        stringstream_t ss;
+                        ss << "Cannot assign type " << Type::String(right_type)
+                           << " to type " << Type::String(left_type);
+                        EmitError(ss.str());
+                        return;
+                    }
+                }
             }
         }
 
@@ -298,6 +353,9 @@ namespace lilang
             case compiler::CodeType::kStringLiteral:
                 obj->type = std::make_shared<Type>(Type::Kind::kString);
                 break;
+            case compiler::CodeType::kBoolLit:
+                obj->type = std::make_shared<Type>(Type::Kind::kBool);
+                break;
             default:
                 exit(-1);
             }
@@ -355,7 +413,8 @@ namespace lilang
                     call_args[0]->obj->type->kind == Type::Kind::kTuple &&
                     call_args[0]->obj->type->vals.size() == args.size())
                 {
-                    if (args.size() == 0) {
+                    if (args.size() == 0)
+                    {
                         EmitError("function returns nothing, cannot used as a value");
                         return;
                     }
@@ -500,6 +559,12 @@ namespace lilang
         void SemanticVisitor::Visit(FuncLit *lit)
         {
             Analyze(lit->type);
+            Type::List returns;
+            for (auto ret : lit->type->returns)
+            {
+                returns.push_back(ret->obj->type);
+            }
+            this->returns = returns;
             lit->obj = std::make_shared<Obj>(Obj::Kind::kFunc, lit->type->obj->type);
             if (lit->name != "")
             {
@@ -523,6 +588,7 @@ namespace lilang
             }
             AnalyzeStmtList(lit->body->stmts);
             LeaveScope();
+            this->returns.clear();
         }
 
         //********************************************************************
@@ -582,14 +648,11 @@ namespace lilang
                                   " cannot assign to a single variable");
                         return;
                     }
-                    else if (expr->obj->type->kind == Type::Kind::kTuple)
+                    else
                     {
-                        auto o = std::make_shared<Obj>(Obj::Kind::kVar, expr->obj->type->vals[0]);
+                        auto o = std::make_shared<Obj>(Obj::Kind::kVar, expr->obj->type);
                         scope->AddSymbol(decl->names[i], o);
-                        continue;
                     }
-                    auto o = std::make_shared<Obj>(Obj::Kind::kVar, expr->obj->type);
-                    scope->AddSymbol(decl->names[i], o);
                 }
             }
         }
@@ -608,14 +671,42 @@ namespace lilang
         // statement related
         //********************************************************************
 
-        void SemanticVisitor::Visit(IfStmt *)
+        void SemanticVisitor::Visit(IfStmt *if_stmt)
         {
+            auto cond = if_stmt->condition;
+            Analyze(cond);
+            if (cond->obj->type->kind != Type::Kind::kBool)
+            {
+                EmitError(Type::String(cond->obj->type) + " cannot used as condition in if");
+            }
+            Analyze(if_stmt->if_block);
+            Analyze(if_stmt->else_block);
         }
-        void SemanticVisitor::Visit(WhileStmt *)
+
+        void SemanticVisitor::Visit(WhileStmt *while_stmt)
         {
+            auto cond = while_stmt->condition;
+            Analyze(cond);
+            if (cond->obj->type->kind != Type::Kind::kBool)
+            {
+                EmitError(Type::String(cond->obj->type) + " cannot used as condition in while");
+            }
+            Analyze(while_stmt->block);
         }
-        void SemanticVisitor::Visit(ForStmt *)
+
+        void SemanticVisitor::Visit(ForStmt *for_stmt)
         {
+            EnterScope();
+            Analyze(for_stmt->init);
+            auto cond = for_stmt->condition;
+            Analyze(cond);
+            if (cond->obj->type->kind != Type::Kind::kBool)
+            {
+                EmitError(Type::String(cond->obj->type) + " cannot used as condition in for");
+            }
+            Analyze(for_stmt->post);
+            AnalyzeStmtList(for_stmt->block->stmts);
+            LeaveScope();
         }
 
         void SemanticVisitor::Visit(AssignStmt *assign_stmt)
@@ -624,50 +715,17 @@ namespace lilang
             auto rhs = assign_stmt->rhs;
             AnalyzeExprList(lhs);
             AnalyzeExprList(rhs);
-            if (lhs.size() != rhs.size())
+            Type::List type_list;
+            for (auto expr : lhs)
             {
-                // let x, y, z = func()
-                if (rhs.size() == 1 &&
-                    rhs[0]->obj->type->kind == Type::Kind::kTuple &&
-                    rhs[0]->obj->type->vals.size() == lhs.size())
+                if (!expr->obj->Assignable())
                 {
-                    for (int i = 0; i < lhs.size(); i++)
-                    {
-                        auto left_type = lhs[i]->obj->type;
-                        auto right_type = rhs[0]->obj->type->vals[i];
-                        if (!Type::CouldAssign(right_type, left_type))
-                        {
-                            stringstream_t ss;
-                            ss << "Cannot assign type " << Type::String(right_type)
-                               << " to type " << Type::String(left_type);
-                            EmitError(ss.str());
-                            return;
-                        }
-                    }
+                    EmitError("left side is not assignable");
                     return;
                 }
-                else
-                {
-                    EmitError("the number of right side mismatch the left side");
-                    return;
-                }
+                type_list.push_back(expr->obj->type);
             }
-            else
-            {
-                for (int i = 0; i < lhs.size(); i++)
-                {
-                    auto left_type = lhs[i]->obj->type;
-                    auto right_type = rhs[i]->obj->type;
-                    if (!Type::CouldAssign(right_type, left_type))
-                    {
-                        stringstream_t ss;
-                        ss << "Cannot assign type " << Type::String(right_type)
-                           << " to type " << Type::String(left_type);
-                        EmitError(ss.str());
-                        return;
-                    }
-                }
-            }
+            Assign(type_list, rhs);
         }
 
         void SemanticVisitor::Visit(DeclStmt *decl_stmt)
@@ -675,8 +733,17 @@ namespace lilang
             Analyze(decl_stmt->decl);
         }
 
-        void SemanticVisitor::Visit(RetStmt *)
+        void SemanticVisitor::Visit(RetStmt *ret_stmt)
         {
+            AnalyzeExprList(ret_stmt->vals);
+            if (this->returns.size() > 0)
+            {
+                Assign(returns, ret_stmt->vals);
+            }
+            else if (ret_stmt->vals.size() > 0)
+            {
+                EmitError("no return value expected");
+            }
         }
 
         void SemanticVisitor::Visit(Block *block)
@@ -693,6 +760,14 @@ namespace lilang
         }
 
         void SemanticVisitor::Visit(EmptyStmt *)
+        {
+        }
+
+        void SemanticVisitor::Visit(BadExpr *)
+        {
+        }
+
+        void SemanticVisitor::Visit(BadStmt *)
         {
         }
 

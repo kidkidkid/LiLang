@@ -2,7 +2,7 @@ let x, y, x int;
 let mm = 10 * 100 + -1;
 
 fn test() {
-
+    return;
 }
 
 fn f_0_0(){
@@ -15,36 +15,36 @@ fn f_0_1 (int){
 
 fn f_0_2()(int, int)
 {
-
+    return 10, 10.0;
 }
 
 fn f_1_1(int) int{
-
+    return 100;
 }
 
 fn f_1_2 (int) (int, int)
 {
-
+    return 0, 0;
 }
 
 fn f_2_2 (int, int) (int, int) {
-
+    return 1,1;
 }
 
 fn test_two(int, int x, int y) (int, float)
 {
-    let m, n = retTwo(); //function call
+    let m, n = test_two(10, 10, 10); //function call
     let a, b = 10.0, 10; // variable declaration
     let s []*[]int; // array
     let ss = s[10];
-    sss = 10; // not declared
+    // sss = 10; // not declared
     let xx = &a; // reference
     *xx = 10; // deference
     let ff = fn() (int, int) {
         return 10, 10;
     };
     let mm = fn(int x, int y) int  {
-        return x * y;
+        return x * y + 10;
     }(10, 10);
 
     // funtion call test
@@ -54,7 +54,27 @@ fn test_two(int, int x, int y) (int, float)
     // let p3 = f_0_0(); // not allowed
     // f_0_0(f_0_0()); //not allowd
     let p3, q3 = f_1_1(f_1_1(f_1_1(1000.0))), 100 & 10 ^ 10 + 10;
-    let p4, q4 = f_2_2(f_1_2(f_1_1(10)))
+    let p4, q4 = f_2_2(f_1_2(f_1_1(10)));
 
+    if (a > 10 || a < 100) {
+        let mm = 10;
+        let mmm bool;
+        mmm = true;
+        let zzz = false;
+        while(true) {
+            let mm =10;
+            while(false){
+                let mm = "zzz";
+            }
+        }
+    }
+
+    for(let m = 1; m < 10; m += 1) {
+        let mm = 10;
+    }
+
+    while(1 == 10 && 10 != 10 || 100 > 10) {
+        let mm  = "ads";
+    }
+    // *10 = 10; // error
 }
-

@@ -248,6 +248,12 @@ ast::Expr::Ptr Parser::ParseUnaryExpression()
         auto ue = ParseUnaryExpression();
         return std::make_shared<ast::UnaryExpr>(t, ue);
     }
+    case CodeType::kMultiply: // dereference OR type
+    {
+        NextToken();
+        auto ue = ParseUnaryExpression();
+        return std::make_shared<ast::StarExpr>(ue);
+    }
     default:
         return ParsePrimaryExpression();
     }
@@ -301,6 +307,7 @@ ast::Expr::Ptr Parser::ParseOperand()
     case CodeType::kStringLiteral:
     case CodeType::kNumber:
     case CodeType::kFloat:
+    case CodeType::kBoolLit:
         return ParseBasicLit();
     case CodeType::kFn:
     {
@@ -738,6 +745,9 @@ ast::Stmt::Ptr Parser::ParseReturnStmt()
     trace("ReturnStatement");
 #endif
     Expect(CodeType::kReturn);
+    if (cur_tok.type == CodeType::kSemiColon) {
+        return std::make_shared<ast::RetStmt>();
+    }
     auto rhs = ParseExprList();
     Expect(CodeType::kSemiColon);
     return std::make_shared<ast::RetStmt>(rhs);

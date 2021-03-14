@@ -166,7 +166,7 @@ namespace lilang
         {
         public:
             BadExpr() = default;
-            inline void Accept(Visitor *) {}
+            void Accept(Visitor *v);
         };
 
         class Ident : public Expr
@@ -336,7 +336,7 @@ namespace lilang
         {
         public:
             BadStmt() = default;
-            inline void Accept(Visitor *) {}
+            void Accept(Visitor *v);
         };
 
         class IfStmt : public Stmt
@@ -448,6 +448,8 @@ namespace lilang
             virtual void Visit(Block *) = 0;
             virtual void Visit(ExprStmt *) = 0;
             virtual void Visit(EmptyStmt *) = 0;
+            virtual void Visit(BadExpr *) = 0;
+            virtual void Visit(BadStmt *) = 0;
         };
 
     }

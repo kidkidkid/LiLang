@@ -77,6 +77,10 @@ namespace lilang
                     {
                         cur_token.type = CodeType::kReturn;
                     }
+                    else if (tok == "true" || tok == "false")
+                    {
+                        cur_token.type = CodeType::kBoolLit;
+                    }
                 }
                 tok_list.push_back(cur_token);
                 NextState(ParseState::kStart);

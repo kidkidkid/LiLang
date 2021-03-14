@@ -56,6 +56,8 @@ namespace lilang
             void Visit(Block *) override;
             void Visit(ExprStmt *) override;
             void Visit(EmptyStmt *) override;
+            void Visit(BadExpr *) override;
+            void Visit(BadStmt *) override;
 
         private:
             Scope::Ptr scope;
@@ -64,6 +66,8 @@ namespace lilang
             void EmitError(const string_t &);
             void AnalyzeExprList(Expr::List &);
             void AnalyzeStmtList(Stmt::List &);
+            void Assign(Type::List &, Expr::List &); // check assign
+            Type::List returns;                      // function return types
 
             class Error
             {

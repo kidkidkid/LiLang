@@ -27,26 +27,27 @@ namespace lilang
         {
             kEOF,
             kIdentifier,
-            kComment,         // //*
-            kNumber,          // includes decimal, hexadecimal, octal, binary
-            kFloat,           // {0-9}.{0-9}
-            kStringLiteral,   // "*"
-            kAdd,             // +
-            kSub,             // -
-            kDivide,          // /
-            kMultiply,        // *
-            kBitsAnd,         // &
-            kBitsOr,          // |
-            kBitsXor,         // ^
-            kMod,             // %
-            kAddAssign,       // +=
-            kSubAssign,       // -=
-            kDivAssign,       // /=
-            kMulAssign,       // *=
-            kBitsAndAssign,   // &=
-            kBitsOrAssign,    // |=
-            kBitsXorAssign,   // ^=
-            kAssign,          // =
+            kComment,       // //*
+            kNumber,        // includes decimal, hexadecimal, octal, binary
+            kFloat,         // {0-9}.{0-9}
+            kStringLiteral, // "*"
+            kBoolLit,       // true/false
+            kAdd,           // +
+            kSub,           // -
+            kDivide,        // /
+            kMultiply,      // *
+            kBitsAnd,       // &
+            kBitsOr,        // |
+            kBitsXor,       // ^
+            kMod,           // %
+            kAddAssign,     // +=
+            kSubAssign,     // -=
+            kDivAssign,     // /=
+            kMulAssign,     // *=
+            kBitsAndAssign, // &=
+            kBitsOrAssign,  // |=
+            kBitsXorAssign, // ^=
+            kAssign,        // =
             // kShortAssign,     // :=
             kEqual,           // ==
             kNotEqual,        // !=
@@ -91,7 +92,7 @@ namespace lilang
             static bool IsDecimalDigit(char_t);
             static string_t Type2Str(CodeType);
             static int Precedence(CodeType);
-            static void Print(List&);
+            static void Print(List &);
         };
 
         struct CodeError
@@ -101,7 +102,7 @@ namespace lilang
             int column_number;
 
             typedef std::vector<CodeError> List;
-            static void Print(List&);
+            static void Print(List &);
         };
 
         struct LexicalParser

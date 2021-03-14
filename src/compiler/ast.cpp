@@ -316,5 +316,15 @@ namespace lilang
         {
             v->Visit(this);
         }
+
+        void BadExpr::Accept(Visitor *v)
+        {
+            v->Visit(this);
+        }
+
+        void BadStmt::Accept(Visitor *v)
+        {
+            v->Visit(this);
+        }
     }
 }
