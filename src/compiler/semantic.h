@@ -58,6 +58,8 @@ namespace lilang
             void Visit(EmptyStmt *) override;
             void Visit(BadExpr *) override;
             void Visit(BadStmt *) override;
+            void Visit(ContinueStmt *) override;
+            void Visit(BreakStmt *) override;
 
         private:
             Scope::Ptr scope;
@@ -68,6 +70,9 @@ namespace lilang
             void AnalyzeStmtList(Stmt::List &);
             void Assign(Type::List &, Expr::List &); // check assign
             Type::List returns;                      // function return types
+            unsigned int stmt_ctx = 0;                   // use bitset to record which statement is permistted
+            unsigned int break_bit = 1;
+            unsigned int continue_bit = 1 << 1;
 
             class Error
             {

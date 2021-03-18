@@ -3,7 +3,7 @@
 #include <iomanip>
 #include "./syntax.h"
 
-#define lilang_syntax_trace
+//#define lilang_syntax_trace
 #define trace(S) Trace _t(S, this)
 
 using namespace lilang::compiler;
@@ -585,6 +585,10 @@ ast::Stmt::Ptr Parser::ParseStmt()
         return ParseBlock();
     case CodeType::kReturn:
         return ParseReturnStmt();
+    case CodeType::kContinue:
+        return ParseContinueStmt();
+    case CodeType::kBreak:
+        return ParseBreakStmt();
     case CodeType::kLet:
     {
         auto e = ParseVarDeclStmt();
@@ -745,7 +749,8 @@ ast::Stmt::Ptr Parser::ParseReturnStmt()
     trace("ReturnStatement");
 #endif
     Expect(CodeType::kReturn);
-    if (cur_tok.type == CodeType::kSemiColon) {
+    if (cur_tok.type == CodeType::kSemiColon)
+    {
         return std::make_shared<ast::RetStmt>();
     }
     auto rhs = ParseExprList();
@@ -769,6 +774,26 @@ ast::Block::Ptr Parser::ParseBlock()
     auto list = ParseStmtList();
     Expect(CodeType::kRightBrace);
     return std::make_shared<ast::Block>(list);
+}
+
+ast::Stmt::Ptr Parser::ParseContinueStmt()
+{
+#ifdef lilang_syntax_trace
+    trace("Continue");
+#endif
+    Expect(CodeType::kContinue);
+    Expect(CodeType::kSemiColon);
+    return std::make_shared<ast::ContinueStmt>();
+}
+
+ast::Stmt::Ptr Parser::ParseBreakStmt()
+{
+#ifdef lilang_syntax_trace
+    trace("Break");
+#endif
+    Expect(CodeType::kBreak);
+    Expect(CodeType::kSemiColon);
+    return std::make_shared<ast::BreakStmt>();
 }
 
 //********************************************************************

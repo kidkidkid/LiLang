@@ -80,6 +80,14 @@ namespace lilang
                     else if (tok == "true" || tok == "false")
                     {
                         cur_token.type = CodeType::kBoolLit;
+                    } 
+                    else if (tok == "continue")
+                    {
+                        cur_token.type = CodeType::kContinue;
+                    }
+                    else if (tok == "break")
+                    {
+                        cur_token.type = CodeType::kBreak;
                     }
                 }
                 tok_list.push_back(cur_token);

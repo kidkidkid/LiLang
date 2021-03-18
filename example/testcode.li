@@ -75,6 +75,13 @@ fn test_two(int, int x, int y) (int, float)
 
     while(1 == 10 && 10 != 10 || 100 > 10) {
         let mm  = "ads";
+        if (true) {
+            continue;
+        } else {
+            break;
+        }
     }
     // *10 = 10; // error
+    // break; // not allowed
+    // continue; // not allowed
 }

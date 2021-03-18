@@ -72,6 +72,8 @@ namespace lilang
             ast::Block::Ptr ParseBlock();
             ast::Stmt::Ptr ParseVarDeclStmt();
             ast::Stmt::Ptr ParseReturnStmt();
+            ast::Stmt::Ptr ParseContinueStmt();
+            ast::Stmt::Ptr ParseBreakStmt();
 
             // declaration related
             ast::Decl::Ptr ParseVarDecl();

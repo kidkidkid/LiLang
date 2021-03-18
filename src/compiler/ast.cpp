@@ -326,5 +326,15 @@ namespace lilang
         {
             v->Visit(this);
         }
+
+        void ContinueStmt::Accept(Visitor *v)
+        {
+            v->Visit(this);
+        }
+
+        void BreakStmt::Accept(Visitor *v)
+        {
+            v->Visit(this);
+        }
     }
 }

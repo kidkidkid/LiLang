@@ -419,6 +419,18 @@ namespace lilang
             void Accept(Visitor *v);
         };
 
+        class ContinueStmt : public Stmt
+        {
+        public:
+            void Accept(Visitor *v);
+        };
+
+        class BreakStmt : public Stmt
+        {
+        public:
+            void Accept(Visitor *v);
+        };
+
         //********************************************************************
         // visitor related
         //********************************************************************
@@ -450,6 +462,8 @@ namespace lilang
             virtual void Visit(EmptyStmt *) = 0;
             virtual void Visit(BadExpr *) = 0;
             virtual void Visit(BadStmt *) = 0;
+            virtual void Visit(ContinueStmt *) = 0;
+            virtual void Visit(BreakStmt *) = 0;
         };
 
     }

@@ -74,6 +74,8 @@ namespace lilang
             kLet,             // let
             kFn,              // fn
             kReturn,          // return
+            kContinue,        // continue
+            kBreak,           // break
         };
 
         struct CodeToken

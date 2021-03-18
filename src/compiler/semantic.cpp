@@ -685,6 +685,8 @@ namespace lilang
 
         void SemanticVisitor::Visit(WhileStmt *while_stmt)
         {
+            auto old_stmt_ctx = stmt_ctx;
+            stmt_ctx |= (break_bit | continue_bit);
             auto cond = while_stmt->condition;
             Analyze(cond);
             if (cond->obj->type->kind != Type::Kind::kBool)
@@ -692,10 +694,13 @@ namespace lilang
                 EmitError(Type::String(cond->obj->type) + " cannot used as condition in while");
             }
             Analyze(while_stmt->block);
+            stmt_ctx = old_stmt_ctx;
         }
 
         void SemanticVisitor::Visit(ForStmt *for_stmt)
         {
+            auto old_stmt_ctx = stmt_ctx;
+            stmt_ctx |= (break_bit | continue_bit);
             EnterScope();
             Analyze(for_stmt->init);
             auto cond = for_stmt->condition;
@@ -707,6 +712,7 @@ namespace lilang
             Analyze(for_stmt->post);
             AnalyzeStmtList(for_stmt->block->stmts);
             LeaveScope();
+            stmt_ctx = old_stmt_ctx;
         }
 
         void SemanticVisitor::Visit(AssignStmt *assign_stmt)
@@ -757,6 +763,22 @@ namespace lilang
         {
             auto expr = expr_stmt->expr;
             Analyze(expr);
+        }
+
+        void SemanticVisitor::Visit(ContinueStmt *)
+        {
+            if ((stmt_ctx & continue_bit) == 0)
+            {
+                EmitError("continue is allowed in for/while statement");
+            }
+        }
+
+        void SemanticVisitor::Visit(BreakStmt *)
+        {
+            if ((stmt_ctx & break_bit) == 0)
+            {
+                EmitError("break is allowed in for/while statement");
+            }
         }
 
         void SemanticVisitor::Visit(EmptyStmt *)
