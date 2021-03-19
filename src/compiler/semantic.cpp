@@ -558,18 +558,19 @@ namespace lilang
 
         void SemanticVisitor::Visit(FuncLit *lit)
         {
+            auto old_returns = this->returns;
             Analyze(lit->type);
             Type::List returns;
             for (auto ret : lit->type->returns)
             {
                 returns.push_back(ret->obj->type);
             }
-            this->returns = returns;
             lit->obj = std::make_shared<Obj>(Obj::Kind::kFunc, lit->type->obj->type);
             if (lit->name != "")
             {
                 scope->AddSymbol(lit->name, lit->obj);
             }
+            this->returns = returns;
             EnterScope();
             for (auto arg : lit->type->args)
             {
@@ -587,8 +588,17 @@ namespace lilang
                 }
             }
             AnalyzeStmtList(lit->body->stmts);
+            if (returns.size() != 0 && !lit->body->HasTerminating())
+            {
+                string_t name = lit->name;
+                if (name == "")
+                {
+                    name = "anonymous";
+                }
+                EmitError("function " + name + " doesn't return");
+            }
             LeaveScope();
-            this->returns.clear();
+            this->returns = old_returns;
         }
 
         //********************************************************************

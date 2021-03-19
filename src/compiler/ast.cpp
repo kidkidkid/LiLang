@@ -202,6 +202,8 @@ namespace lilang
             return o;
         }
 
+        // visitor related
+
         void File::Accept(Visitor *v)
         {
             v->Visit(this);
@@ -336,5 +338,87 @@ namespace lilang
         {
             v->Visit(this);
         }
+
+        // has terminating
+
+        bool BreakStmt::HasTerminating()
+        {
+            return false;
+        }
+
+        bool IfStmt::HasTerminating()
+        {
+            if (!if_block->HasTerminating())
+            {
+                return false;
+            }
+            if (else_block != nullptr)
+            {
+                if (!else_block->HasTerminating())
+                {
+                    return false;
+                }
+                return true;
+            }
+            return true;
+        }
+
+        bool ForStmt::HasTerminating()
+        {
+            return block->HasTerminating();
+        }
+
+        bool WhileStmt::HasTerminating()
+        {
+            return block->HasTerminating();
+        }
+
+        bool Block::HasTerminating()
+        {
+            for (auto stmt : stmts)
+            {
+                if (stmt->HasTerminating())
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        bool RetStmt::HasTerminating()
+        {
+            return true;
+        }
+
+        bool EmptyStmt::HasTerminating()
+        {
+            return false;
+        }
+
+        bool ExprStmt::HasTerminating()
+        {
+            return false;
+        }
+
+        bool AssignStmt::HasTerminating()
+        {
+            return false;
+        }
+
+        bool DeclStmt::HasTerminating()
+        {
+            return false;
+        }
+
+        bool BadStmt::HasTerminating()
+        {
+            return false;
+        }
+
+        bool ContinueStmt::HasTerminating()
+        {
+            return false;
+        }
+
     }
 }

@@ -117,6 +117,8 @@ namespace lilang
         public:
             typedef std::shared_ptr<Stmt> Ptr;
             typedef std::vector<Ptr> List;
+
+            virtual bool HasTerminating() = 0;
         };
 
         class Expr : public Node
@@ -330,6 +332,7 @@ namespace lilang
             Block() = default;
             Block(Stmt::List stmts) : stmts(stmts) {}
             void Accept(Visitor *v);
+            bool HasTerminating();
         };
 
         class BadStmt : public Stmt
@@ -337,6 +340,7 @@ namespace lilang
         public:
             BadStmt() = default;
             void Accept(Visitor *v);
+            bool HasTerminating();
         };
 
         class IfStmt : public Stmt
@@ -349,6 +353,7 @@ namespace lilang
             IfStmt(Expr::Ptr cond, Stmt::Ptr if_block, Stmt::Ptr else_block)
                 : condition(cond), if_block(if_block), else_block(else_block) {}
             void Accept(Visitor *v);
+            bool HasTerminating();
         };
 
         class WhileStmt : public Stmt
@@ -360,6 +365,7 @@ namespace lilang
             WhileStmt(Expr::Ptr cond, Stmt::Ptr block)
                 : condition(cond), block(block) {}
             void Accept(Visitor *v);
+            bool HasTerminating();
         };
 
         class ForStmt : public Stmt
@@ -373,6 +379,7 @@ namespace lilang
             ForStmt(Stmt::Ptr i, Expr::Ptr c, Stmt::Ptr p, Block::Ptr b)
                 : init(i), condition(c), post(p), block(b) {}
             void Accept(Visitor *v);
+            bool HasTerminating();
         };
 
         class RetStmt : public Stmt
@@ -382,6 +389,7 @@ namespace lilang
             RetStmt() = default;
             RetStmt(Expr::List v) : vals(v) {}
             void Accept(Visitor *v);
+            bool HasTerminating();
         };
 
         class EmptyStmt : public Stmt
@@ -389,6 +397,7 @@ namespace lilang
         public:
             EmptyStmt() = default;
             void Accept(Visitor *v);
+            bool HasTerminating();
         };
 
         class ExprStmt : public Stmt
@@ -398,6 +407,7 @@ namespace lilang
             ExprStmt() = default;
             ExprStmt(Expr::Ptr e) : expr(e) {}
             void Accept(Visitor *v);
+            bool HasTerminating();
         };
 
         class AssignStmt : public Stmt
@@ -408,6 +418,7 @@ namespace lilang
             AssignStmt() = default;
             AssignStmt(Expr::List l, Expr::List r) : lhs(l), rhs(r) {}
             void Accept(Visitor *v);
+            bool HasTerminating();
         };
 
         class DeclStmt : public Stmt
@@ -417,18 +428,21 @@ namespace lilang
             DeclStmt() = default;
             DeclStmt(Decl::Ptr d) : decl(d) {}
             void Accept(Visitor *v);
+            bool HasTerminating();
         };
 
         class ContinueStmt : public Stmt
         {
         public:
             void Accept(Visitor *v);
+            bool HasTerminating();
         };
 
         class BreakStmt : public Stmt
         {
         public:
             void Accept(Visitor *v);
+            bool HasTerminating();
         };
 
         //********************************************************************
